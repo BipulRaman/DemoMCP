@@ -61,6 +61,139 @@ public class McpServerController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// HTTP GET endpoint for MCP initialization (for direct HTTP access)
+    /// </summary>
+    [HttpGet("initialize")]
+    public IActionResult GetInitialize()
+    {
+        try
+        {
+            _logger.LogInformation("Received HTTP GET request for MCP initialization");
+            
+            var result = new McpInitializeResult
+            {
+                ProtocolVersion = "2024-11-05",
+                Capabilities = new McpServerCapabilities
+                {
+                    Tools = new McpToolsCapability { ListChanged = false },
+                    Prompts = new McpPromptsCapability { ListChanged = false }
+                },
+                ServerInfo = new McpServerInfo
+                {
+                    Name = "LunchTime MCP Server",
+                    Version = "1.0.0"
+                }
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling GET initialize request");
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// HTTP GET endpoint to list available tools (for direct HTTP access)
+    /// </summary>
+    [HttpGet("tools")]
+    public IActionResult GetTools()
+    {
+        try
+        {
+            _logger.LogInformation("Received HTTP GET request for tools list");
+            
+            var tools = new McpTool[]
+            {
+                new()
+                {
+                    Name = "get_restaurants",
+                    Description = "Get a list of all restaurants available for lunch.",
+                    InputSchema = new
+                    {
+                        type = "object",
+                        properties = new { },
+                        required = Array.Empty<string>(),
+                        additionalProperties = false
+                    }
+                },
+                new()
+                {
+                    Name = "add_restaurant",
+                    Description = "Add a new restaurant to the lunch options.",
+                    InputSchema = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            name = new 
+                            { 
+                                type = "string", 
+                                description = "The name of the restaurant",
+                                minLength = 1,
+                                maxLength = 100
+                            },
+                            location = new 
+                            { 
+                                type = "string", 
+                                description = "The location/address of the restaurant",
+                                minLength = 1,
+                                maxLength = 200
+                            },
+                            foodType = new 
+                            { 
+                                type = "string", 
+                                description = "The type of food served (e.g., Italian, Mexican, Thai, etc.)",
+                                minLength = 1,
+                                maxLength = 50
+                            }
+                        },
+                        required = new[] { "name", "location", "foodType" },
+                        additionalProperties = false
+                    }
+                },
+                new()
+                {
+                    Name = "pick_random_restaurant",
+                    Description = "Pick a random restaurant from the available options for lunch.",
+                    InputSchema = new
+                    {
+                        type = "object",
+                        properties = new { },
+                        required = Array.Empty<string>(),
+                        additionalProperties = false
+                    }
+                },
+                new()
+                {
+                    Name = "get_visit_statistics",
+                    Description = "Get statistics about how many times each restaurant has been visited.",
+                    InputSchema = new
+                    {
+                        type = "object",
+                        properties = new { },
+                        required = Array.Empty<string>(),
+                        additionalProperties = false
+                    }
+                }
+            };
+
+            var result = new McpToolsListResult
+            {
+                Tools = tools
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling GET tools request");
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+
     private JsonRpcResponse HandleInitialize(JsonRpcRequest request)
     {
         var result = new McpInitializeResult

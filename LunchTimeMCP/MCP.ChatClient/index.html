@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Chat Client</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-robot"></i> MCP Chat</h1>
+                <p>Model Context Protocol Client</p>
+            </div>
+            
+            <div class="connection-section">
+                <h3><i class="fas fa-plug"></i> Server Connection</h3>
+                <div class="connection-options">
+                    <div class="connection-type">
+                        <input type="radio" id="http-connection" name="connection-type" value="http" checked>
+                        <label for="http-connection">
+                            <i class="fas fa-globe"></i> HTTP Server
+                        </label>
+                    </div>
+                    <div class="connection-type">
+                        <input type="radio" id="stdio-connection" name="connection-type" value="stdio">
+                        <label for="stdio-connection">
+                            <i class="fas fa-terminal"></i> STDIO Server
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="connection-config" id="http-config">
+                    <input type="text" id="http-url" placeholder="http://localhost:5000" value="http://localhost:5000">
+                </div>
+                
+                <div class="connection-config hidden" id="stdio-config">
+                    <input type="text" id="stdio-command" placeholder="dotnet run --project ../MCP.stdio" value="dotnet run --project ../MCP.stdio">
+                </div>
+                
+                <button id="connect-btn" class="connect-btn">
+                    <i class="fas fa-play"></i> Connect
+                </button>
+                <div class="connection-status" id="connection-status">
+                    <i class="fas fa-circle"></i> Disconnected
+                </div>
+            </div>
+
+            <div class="tools-section">
+                <h3><i class="fas fa-tools"></i> Available Tools</h3>
+                <div class="tools-list" id="tools-list">
+                    <div class="no-tools">Connect to see available tools</div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3><i class="fas fa-cog"></i> Settings</h3>
+                <div class="setting-item">
+                    <label for="auto-scroll">Auto-scroll chat</label>
+                    <input type="checkbox" id="auto-scroll" checked>
+                </div>
+                <div class="setting-item">
+                    <label for="show-raw">Show raw responses</label>
+                    <input type="checkbox" id="show-raw">
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-content">
+            <div class="chat-header">
+                <h2><i class="fas fa-comments"></i> Chat with MCP Server</h2>
+                <div class="chat-controls">
+                    <button id="clear-chat" class="btn-secondary">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="welcome-message">
+                        <div class="message-content">
+                            <h3>👋 Welcome to MCP Chat Client!</h3>
+                            <p>This client allows you to test Model Context Protocol (MCP) servers.</p>
+                            <ul>
+                                <li>Connect to your MCP server using the sidebar</li>
+                                <li>Available tools will appear once connected</li>
+                                <li>Chat naturally - the client will automatically use tools when needed</li>
+                                <li>Try asking: "What restaurants are available?" or "Add a new restaurant"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <textarea 
+                            id="chat-input" 
+                            placeholder="Type your message here... (Shift+Enter for new line, Enter to send)"
+                            rows="1"></textarea>
+                        <button id="send-btn" class="send-btn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="input-hint">
+                        <i class="fas fa-lightbulb"></i>
+                        Try: "Show me all restaurants", "Add a pizza place", or "Pick a random restaurant for lunch"
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

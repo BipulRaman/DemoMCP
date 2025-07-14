@@ -51,8 +51,15 @@ app.MapGet("/", () => new {
     version = "1.0.0", 
     description = "HTTP-based Model Context Protocol server for managing lunch restaurant choices",
     endpoints = new { 
-        mcp = "/mcp",
+        mcp_jsonrpc = "/mcp (POST with JSON-RPC 2.0)",
+        mcp_initialize = "/mcp/initialize (GET)",
+        mcp_tools = "/mcp/tools (GET)",
         health = "/health"
+    },
+    documentation = new {
+        jsonrpc_usage = "Send POST requests to /mcp with JSON-RPC 2.0 format",
+        http_usage = "Use GET endpoints for direct HTTP access",
+        supported_methods = new[] { "initialize", "tools/list", "tools/call", "prompts/list", "prompts/get" }
     }
 });
 
