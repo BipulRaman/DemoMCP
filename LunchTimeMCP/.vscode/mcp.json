@@ -7,9 +7,13 @@
             "args": [
                 "run",
                 "--project",
-                "C:\\Code\\GitHub\\DemoMCP\\LunchTimeMCP\\LunchTimeMCP\\LunchTimeMCP.csproj"
+                "C:\\Code\\GitHub\\DemoMCP\\LunchTimeMCP\\MCP.stdio\\LunchTimeMCP.csproj"
             ],
             "env": {}
+        },
+        "lunchtime-mcp": {
+            "type": "http",
+            "url": "http://localhost:5073/mcp"
         }
     }
 }

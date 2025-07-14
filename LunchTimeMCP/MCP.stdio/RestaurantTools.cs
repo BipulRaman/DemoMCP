@@ -1,8 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
+using LunchTimeMCP;
 using ModelContextProtocol.Server;
 
-namespace LunchTimeMCP;
+namespace MCP.stdio;
 
 [McpServerToolType]
 public sealed class RestaurantTools

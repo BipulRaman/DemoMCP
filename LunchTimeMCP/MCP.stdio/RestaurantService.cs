@@ -13,7 +13,7 @@ public class RestaurantService
     {
         // Store data in user's app data directory
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appDir = Path.Combine(appDataPath, "LunchTimeMCP");
+        var appDir = Path.Combine(appDataPath, "MCP.stdio");
         Directory.CreateDirectory(appDir);
 
         dataFilePath = Path.Combine(appDir, "restaurants.json");

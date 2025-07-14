@@ -1,4 +1,5 @@
 ﻿using LunchTimeMCP;
+using MCP.stdio;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ModelContextProtocol.Server;
