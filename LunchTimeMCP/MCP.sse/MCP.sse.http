@@ -1,0 +1,202 @@
+@MCP.sse_HostAddress = http://localhost:5227
+
+###
+# Health Check
+GET {{MCP.sse_HostAddress}}/health
+Accept: application/json
+
+###
+# Server Information
+GET {{MCP.sse_HostAddress}}/
+Accept: application/json
+
+###
+# MCP Protocol - Initialize (JSON-RPC 2.0)
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "streaming": {
+        "supported": true,
+        "protocol": "sse"
+      }
+    },
+    "clientInfo": {
+      "name": "Test Client",
+      "version": "1.0.0"
+    }
+  }
+}
+
+###
+# MCP Protocol - List Tools
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/list"
+}
+
+###
+# MCP Protocol - List Prompts (This was causing the ZodError)
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "method": "prompts/list"
+}
+
+###
+# MCP Protocol - Get Restaurant Recommendation Prompt
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "method": "prompts/get",
+  "params": {
+    "name": "restaurant_recommendation",
+    "arguments": {
+      "cuisine_type": "Italian",
+      "location_preference": "West Hollywood"
+    }
+  }
+}
+
+###
+# MCP Protocol - List Resources
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 8,
+  "method": "resources/list"
+}
+
+###
+# MCP Protocol - Get Restaurants (Standard)
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurants"
+  }
+}
+
+###
+# MCP Protocol - Add Restaurant
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "method": "tools/call",
+  "params": {
+    "name": "add_restaurant",
+    "arguments": {
+      "name": "Test SSE Restaurant",
+      "location": "123 Test St",
+      "foodType": "Test Cuisine"
+    }
+  }
+}
+
+###
+# MCP Protocol - Pick Random Restaurant
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tools/call",
+  "params": {
+    "name": "pick_random_restaurant"
+  }
+}
+
+###
+# HTTP GET - Initialize (Direct HTTP)
+GET {{MCP.sse_HostAddress}}/mcp/initialize
+Accept: application/json
+
+###
+# HTTP GET - List Tools (Direct HTTP)
+GET {{MCP.sse_HostAddress}}/mcp/tools
+Accept: application/json
+
+###
+# SSE - Get Capabilities
+GET {{MCP.sse_HostAddress}}/sse/capabilities
+Accept: application/json
+
+###
+# SSE - Main Stream Connection (Connect with SSE client)
+# Note: This is a Server-Sent Events endpoint - use with an SSE client
+GET {{MCP.sse_HostAddress}}/sse/stream
+Accept: text/event-stream
+
+###
+# SSE - Stream Restaurants (Progressive Loading)
+# Note: This is a Server-Sent Events endpoint
+GET {{MCP.sse_HostAddress}}/sse/tools/get_restaurants_stream
+Accept: text/event-stream
+
+###
+# SSE - Stream Restaurant Analysis
+# Note: This is a Server-Sent Events endpoint
+GET {{MCP.sse_HostAddress}}/sse/tools/analyze_restaurants_stream?arguments={"type":"detailed"}
+Accept: text/event-stream
+
+###
+# SSE - Stream Restaurant Search
+# Note: This is a Server-Sent Events endpoint
+GET {{MCP.sse_HostAddress}}/sse/tools/search_restaurants_stream?arguments={"query":"italian"}
+Accept: text/event-stream
+
+###
+# SSE - Stream Tool with POST Request
+POST {{MCP.sse_HostAddress}}/sse/tools/analyze_restaurants_stream
+Content-Type: application/json
+Accept: text/event-stream
+
+{
+  "tool": "analyze_restaurants_stream",
+  "arguments": {
+    "type": "comprehensive"
+  },
+  "requestId": "test-request-001"
+}
+
+###
+# SSE - Stream Search with POST Request
+POST {{MCP.sse_HostAddress}}/sse/tools/search_restaurants_stream
+Content-Type: application/json
+Accept: text/event-stream
+
+{
+  "tool": "search_restaurants_stream",
+  "arguments": {
+    "query": "mexican"
+  },
+  "requestId": "test-search-001"
+}
+
+###

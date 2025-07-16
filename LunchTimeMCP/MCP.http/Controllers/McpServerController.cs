@@ -6,7 +6,7 @@ using System.Text.Json;
 namespace MCP.http.Controllers;
 
 /// <summary>
-/// Pure MCP (Model Context Protocol) server implementation using JSON-RPC 2.0
+/// Pure MCP (Model Context Protocol) server implementation using JSON-RPC 2.0 with streaming capabilities
 /// </summary>
 [ApiController]
 [Route("mcp")]
@@ -38,12 +38,13 @@ public class McpServerController : ControllerBase
 
             var response = request.Method switch
             {
-                "initialize" => HandleInitialize(request),
-                "tools/list" => HandleToolsList(request),
-                "tools/call" => await HandleToolCall(request),
-                "prompts/list" => HandlePromptsList(request),
-                "prompts/get" => HandlePromptsGet(request),
-                _ => CreateErrorResponse(request.Id, -32601, $"Method not found: {request.Method}")
+                "initialize" => (object)HandleInitialize(request),
+                "tools/list" => (object)HandleToolsList(request),
+                "tools/call" => (object)await HandleToolCall(request),
+                "prompts/list" => (object)HandlePromptsList(request),
+                "prompts/get" => (object)HandlePromptsGet(request),
+                "resources/list" => (object)HandleResourcesList(request),
+                _ => (object)CreateErrorResponse(request.Id, -32601, $"Method not found: {request.Method}")
             };
 
             _logger.LogInformation("Sending response for method: {Method}", request.Method);
@@ -52,12 +53,12 @@ public class McpServerController : ControllerBase
         catch (JsonException ex)
         {
             _logger.LogError(ex, "JSON parsing error in MCP request");
-            return Ok(CreateErrorResponse(request.Id, -32700, "Parse error", ex.Message));
+            return Ok(CreateErrorResponse(request?.Id, -32700, "Parse error", ex.Message));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling MCP request");
-            return Ok(CreateErrorResponse(request.Id, -32603, "Internal error", ex.Message));
+            return Ok(CreateErrorResponse(request?.Id, -32603, "Internal error", ex.Message));
         }
     }
 
@@ -76,13 +77,22 @@ public class McpServerController : ControllerBase
                 ProtocolVersion = "2024-11-05",
                 Capabilities = new McpServerCapabilities
                 {
-                    Tools = new McpToolsCapability { ListChanged = false },
-                    Prompts = new McpPromptsCapability { ListChanged = false }
+                    Tools = new McpToolsCapability { ListChanged = false, Streaming = true },
+                    Prompts = new McpPromptsCapability { ListChanged = false },
+                    Resources = new McpResourcesCapability { ListChanged = false },
+                    Streaming = new McpStreamingServerCapability
+                    {
+                        Supported = true,
+                        Protocols = new[] { "sse", "chunked-json" },
+                        ToolStreaming = true,
+                        PromptStreaming = true
+                    }
                 },
                 ServerInfo = new McpServerInfo
                 {
-                    Name = "LunchTime MCP Server",
-                    Version = "1.0.0"
+                    Name = "LunchTime MCP Streaming Server",
+                    Version = "1.0.0",
+                    Description = "Streamable HTTP-based MCP server for lunch restaurant management"
                 }
             };
 
@@ -91,7 +101,8 @@ public class McpServerController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling GET initialize request");
-            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            var errorResponse = CreateErrorResponse(null, -32603, "Internal error", ex.Message);
+            return StatusCode(500, errorResponse);
         }
     }
 
@@ -111,6 +122,20 @@ public class McpServerController : ControllerBase
                 {
                     Name = "get_restaurants",
                     Description = "Get a list of all restaurants available for lunch.",
+                    Streaming = false,
+                    InputSchema = new
+                    {
+                        type = "object",
+                        properties = new { },
+                        required = Array.Empty<string>(),
+                        additionalProperties = false
+                    }
+                },
+                new()
+                {
+                    Name = "get_restaurants_stream",
+                    Description = "Stream a list of all restaurants progressively with real-time loading.",
+                    Streaming = true,
                     InputSchema = new
                     {
                         type = "object",
@@ -123,6 +148,7 @@ public class McpServerController : ControllerBase
                 {
                     Name = "add_restaurant",
                     Description = "Add a new restaurant to the lunch options.",
+                    Streaming = false,
                     InputSchema = new
                     {
                         type = "object",
@@ -156,8 +182,53 @@ public class McpServerController : ControllerBase
                 },
                 new()
                 {
+                    Name = "analyze_restaurants_stream",
+                    Description = "Stream progressive analysis of restaurant data including cuisine distribution and insights.",
+                    Streaming = true,
+                    InputSchema = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            type = new
+                            {
+                                type = "string",
+                                description = "Type of analysis to perform (general, cuisine, location)",
+                                @enum = new[] { "general", "cuisine", "location" },
+                                @default = "general"
+                            }
+                        },
+                        required = Array.Empty<string>(),
+                        additionalProperties = false
+                    }
+                },
+                new()
+                {
+                    Name = "search_restaurants_stream",
+                    Description = "Stream real-time search results for restaurants based on query criteria.",
+                    Streaming = true,
+                    InputSchema = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            query = new
+                            {
+                                type = "string",
+                                description = "Search query for restaurant name, location, or cuisine type",
+                                minLength = 1,
+                                maxLength = 100
+                            }
+                        },
+                        required = new[] { "query" },
+                        additionalProperties = false
+                    }
+                },
+                new()
+                {
                     Name = "pick_random_restaurant",
                     Description = "Pick a random restaurant from the available options for lunch.",
+                    Streaming = false,
                     InputSchema = new
                     {
                         type = "object",
@@ -170,6 +241,7 @@ public class McpServerController : ControllerBase
                 {
                     Name = "get_visit_statistics",
                     Description = "Get statistics about how many times each restaurant has been visited.",
+                    Streaming = false,
                     InputSchema = new
                     {
                         type = "object",
@@ -190,7 +262,8 @@ public class McpServerController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling GET tools request");
-            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            var errorResponse = CreateErrorResponse(null, -32603, "Internal error", ex.Message);
+            return StatusCode(500, errorResponse);
         }
     }
 
@@ -201,13 +274,22 @@ public class McpServerController : ControllerBase
             ProtocolVersion = "2024-11-05",
             Capabilities = new McpServerCapabilities
             {
-                Tools = new McpToolsCapability { ListChanged = false },
-                Prompts = new McpPromptsCapability { ListChanged = false }
+                Tools = new McpToolsCapability { ListChanged = false, Streaming = true },
+                Prompts = new McpPromptsCapability { ListChanged = false },
+                Resources = new McpResourcesCapability { ListChanged = false },
+                Streaming = new McpStreamingServerCapability
+                {
+                    Supported = true,
+                    Protocols = new[] { "sse", "chunked-json" },
+                    ToolStreaming = true,
+                    PromptStreaming = true
+                }
             },
             ServerInfo = new McpServerInfo
             {
-                Name = "LunchTime MCP Server",
-                Version = "1.0.0"
+                Name = "LunchTime MCP Streaming Server",
+                Version = "1.0.0",
+                Description = "Streamable HTTP-based MCP server for lunch restaurant management"
             }
         };
 
@@ -226,6 +308,20 @@ public class McpServerController : ControllerBase
             {
                 Name = "get_restaurants",
                 Description = "Get a list of all restaurants available for lunch.",
+                Streaming = false,
+                InputSchema = new
+                {
+                    type = "object",
+                    properties = new { },
+                    required = Array.Empty<string>(),
+                    additionalProperties = false
+                }
+            },
+            new()
+            {
+                Name = "get_restaurants_stream",
+                Description = "Stream a list of all restaurants progressively with real-time loading.",
+                Streaming = true,
                 InputSchema = new
                 {
                     type = "object",
@@ -238,6 +334,7 @@ public class McpServerController : ControllerBase
             {
                 Name = "add_restaurant",
                 Description = "Add a new restaurant to the lunch options.",
+                Streaming = false,
                 InputSchema = new
                 {
                     type = "object",
@@ -271,8 +368,53 @@ public class McpServerController : ControllerBase
             },
             new()
             {
+                Name = "analyze_restaurants_stream",
+                Description = "Stream progressive analysis of restaurant data including cuisine distribution and insights.",
+                Streaming = true,
+                InputSchema = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        type = new
+                        {
+                            type = "string",
+                            description = "Type of analysis to perform (general, cuisine, location)",
+                            @enum = new[] { "general", "cuisine", "location" },
+                            @default = "general"
+                        }
+                    },
+                    required = Array.Empty<string>(),
+                    additionalProperties = false
+                }
+            },
+            new()
+            {
+                Name = "search_restaurants_stream",
+                Description = "Stream real-time search results for restaurants based on query criteria.",
+                Streaming = true,
+                InputSchema = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        query = new
+                        {
+                            type = "string",
+                            description = "Search query for restaurant name, location, or cuisine type",
+                            minLength = 1,
+                            maxLength = 100
+                        }
+                    },
+                    required = new[] { "query" },
+                    additionalProperties = false
+                }
+            },
+            new()
+            {
                 Name = "pick_random_restaurant",
                 Description = "Pick a random restaurant from the available options for lunch.",
+                Streaming = false,
                 InputSchema = new
                 {
                     type = "object",
@@ -285,6 +427,7 @@ public class McpServerController : ControllerBase
             {
                 Name = "get_visit_statistics",
                 Description = "Get statistics about how many times each restaurant has been visited.",
+                Streaming = false,
                 InputSchema = new
                 {
                     type = "object",
@@ -307,7 +450,7 @@ public class McpServerController : ControllerBase
         };
     }
 
-    private async Task<JsonRpcResponse> HandleToolCall(JsonRpcRequest request)
+    private async Task<object> HandleToolCall(JsonRpcRequest request)
     {
         try
         {
@@ -317,6 +460,42 @@ public class McpServerController : ControllerBase
             if (toolCallParams == null)
             {
                 return CreateErrorResponse(request.Id, -32602, "Invalid params");
+            }
+
+            // Check if this is a streaming tool call request
+            if (toolCallParams.Streaming == true || IsStreamingTool(toolCallParams.Name))
+            {
+                // For streaming tools, return a response that directs to streaming endpoints
+                return new JsonRpcResponse
+                {
+                    Id = request.Id,
+                    Result = new McpToolCallResult
+                    {
+                        Content = new[]
+                        {
+                            new McpContent
+                            {
+                                Type = "text",
+                                Text = $"🔄 **Streaming Tool: {toolCallParams.Name}**\n\n" +
+                                       "This tool supports streaming responses. Use the streaming endpoints for real-time data:\n\n" +
+                                       "📡 **Server-Sent Events:** POST /mcp/stream/tools/call/sse\n" +
+                                       "🔗 **Chunked JSON:** POST /mcp/stream/tools/call/chunked\n" +
+                                       "📊 **Restaurant Stream:** GET /mcp/stream/restaurants/sse\n\n" +
+                                       "💡 Check /mcp/stream/capabilities for detailed streaming information."
+                            }
+                        },
+                        Metadata = new McpToolCallMetadata
+                        {
+                            Timestamp = DateTime.UtcNow,
+                            Streaming = new StreamingMetadata
+                            {
+                                ChunkNumber = 1,
+                                TotalChunks = 1,
+                                IsLast = true
+                            }
+                        }
+                    }
+                };
             }
 
             var result = await ExecuteTool(toolCallParams.Name, toolCallParams.Arguments);
@@ -332,6 +511,12 @@ public class McpServerController : ControllerBase
             _logger.LogError(ex, "Error executing tool call");
             return CreateErrorResponse(request.Id, -32603, "Tool execution error", ex.Message);
         }
+    }
+
+    private bool IsStreamingTool(string toolName)
+    {
+        var streamingTools = new[] { "get_restaurants_stream", "analyze_restaurants_stream", "search_restaurants_stream" };
+        return streamingTools.Contains(toolName.ToLowerInvariant());
     }
 
     private async Task<McpToolCallResult> ExecuteTool(string toolName, Dictionary<string, object>? arguments)
@@ -448,7 +633,6 @@ public class McpServerController : ControllerBase
                 }
 
                 var restaurant = await _restaurantService.AddRestaurantAsync(name, location, foodType);
-                var restaurantJson = JsonSerializer.Serialize(restaurant, new JsonSerializerOptions { WriteIndented = true });
                 return new McpToolCallResult
                 {
                     Content = new[]
@@ -486,7 +670,7 @@ public class McpServerController : ControllerBase
                         new McpContent
                         {
                             Type = "text",
-                            Text = $"� **Time for lunch at {selectedRestaurant.Name}!**\n\n" +
+                            Text = $"🎲 **Time for lunch at {selectedRestaurant.Name}!**\n\n" +
                                    $"📍 **Selected Restaurant:**\n" +
                                    $"🏢 Location: {selectedRestaurant.Location}\n" +
                                    $"🍽️ Food Type: {selectedRestaurant.FoodType}\n" +
@@ -610,7 +794,7 @@ public class McpServerController : ControllerBase
         };
     }
 
-    private JsonRpcResponse HandlePromptsGet(JsonRpcRequest request)
+    private object HandlePromptsGet(JsonRpcRequest request)
     {
         try
         {
@@ -777,9 +961,9 @@ Let's expand my lunch horizons with a new great option! 🎉";
         };
     }
 
-    private JsonRpcResponse CreateErrorResponse(object? id, int code, string message, object? data = null)
+    private JsonRpcErrorResponse CreateErrorResponse(object? id, int code, string message, object? data = null)
     {
-        return new JsonRpcResponse
+        return new JsonRpcErrorResponse
         {
             Id = id,
             Error = new JsonRpcError
@@ -789,5 +973,46 @@ Let's expand my lunch horizons with a new great option! 🎉";
                 Data = data
             }
         };
+    }
+
+    private JsonRpcResponse HandleResourcesList(JsonRpcRequest request)
+    {
+        // MCP servers are required to support resources/list even if they don't provide any resources
+        var result = new McpResourcesListResult
+        {
+            Resources = Array.Empty<McpResource>()
+        };
+
+        return new JsonRpcResponse
+        {
+            Id = request.Id,
+            Result = result
+        };
+    }
+
+    /// <summary>
+    /// HTTP GET endpoint to list available resources (for direct HTTP access)
+    /// </summary>
+    [HttpGet("resources")]
+    public IActionResult GetResources()
+    {
+        try
+        {
+            _logger.LogInformation("Received HTTP GET request for resources list");
+            
+            // This server doesn't provide any resources, but the endpoint must exist per MCP spec
+            var result = new McpResourcesListResult
+            {
+                Resources = Array.Empty<McpResource>()
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling GET resources request");
+            var errorResponse = CreateErrorResponse(null, -32603, "Internal error", ex.Message);
+            return StatusCode(500, errorResponse);
+        }
     }
 }

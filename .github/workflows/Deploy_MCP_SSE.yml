@@ -3,7 +3,7 @@ name: Build and Deploy MCP Server to Azure App Service
 on:
   push:
     paths:
-      - 'LunchTimeMCP/MCP.http/**'
+      - 'LunchTimeMCP/MCP.sse/**'
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
           nuget-packages-${{ runner.os }}-
 
     - name: Build the .NET Web API project
-      run: dotnet build LunchTimeMCP/MCP.http/MCP.http.csproj
+      run: dotnet build LunchTimeMCP/MCP.sse/MCP.sse.csproj
 
     - name: Cache build artifacts
       uses: actions/cache@v3
@@ -39,7 +39,7 @@ jobs:
           build-artifacts-${{ runner.os }}-
 
     - name: Publish the .NET Web API project
-      run: dotnet publish LunchTimeMCP/MCP.http/MCP.http.csproj -c Release -o ./publish
+      run: dotnet publish LunchTimeMCP/MCP.sse/MCP.sse.csproj -c Release -o ./publish
 
     - name: Deploy to Azure App Service
       uses: azure/webapps-deploy@v2

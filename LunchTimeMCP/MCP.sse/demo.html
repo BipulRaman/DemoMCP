@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LunchTime MCP SSE Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .fix-notification {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .event {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            background-color: white;
+        }
+        .event.restaurant-data {
+            border-left-color: #28a745;
+        }
+        .event.error {
+            border-left-color: #dc3545;
+        }
+        .event.heartbeat {
+            border-left-color: #ffc107;
+        }
+        .event.success {
+            border-left-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍽️ LunchTime MCP SSE Demo</h1>
+    
+    <div class="fix-notification">
+        <strong>✅ ZodError Fixed!</strong> The <code>nextCursor</code> null value issue has been resolved. 
+        The server now omits null cursor values instead of serializing them as null, preventing Zod validation errors.
+    </div>
+    
+    <div class="container">
+        <h2>Connection Status</h2>
+        <div id="status" class="status disconnected">Disconnected</div>
+        <button id="connectBtn" onclick="connect()">Connect to SSE Stream</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+    </div>
+
+    <div class="container">
+        <h2>Test MCP Protocol (No More ZodError!)</h2>
+        <button onclick="testPromptsListFixed()">🔧 Test Prompts List (Fixed)</button>
+        <button onclick="testToolsList()">🛠️ Test Tools List</button>
+        <button onclick="testResources()">📚 Test Resources List</button>
+    </div>
+
+    <div class="container">
+        <h2>Streaming Tools</h2>
+        <button onclick="streamRestaurants()">Stream Restaurants</button>
+        <button onclick="streamAnalysis()">Stream Analysis</button>
+        <button onclick="streamSearch()">Stream Search</button>
+        
+        <div>
+            <label>Search Query: </label>
+            <input type="text" id="searchQuery" placeholder="e.g., italian" value="mexican">
+            <label>Analysis Type: </label>
+            <select id="analysisType">
+                <option value="general">General</option>
+                <option value="detailed">Detailed</option>
+                <option value="comprehensive">Comprehensive</option>
+            </select>
+        </div>
+        
+        <div class="progress">
+            <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+        </div>
+        <div id="progressText">Ready</div>
+    </div>
+
+    <div class="container">
+        <h2>Standard MCP Tools</h2>
+        <button onclick="getRestaurants()">Get Restaurants</button>
+        <button onclick="addRestaurant()">Add Restaurant</button>
+        <button onclick="pickRandom()">Pick Random</button>
+        <button onclick="getStats()">Get Visit Stats</button>
+    </div>
+
+    <div class="container">
+        <h2>Event Log</h2>
+        <button onclick="clearLog()">Clear Log</button>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let toolEventSource = null;
+        const serverUrl = 'http://localhost:5227';
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const eventDiv = document.createElement('div');
+            eventDiv.className = `event ${type}`;
+            eventDiv.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logDiv.appendChild(eventDiv);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            
+            if (connected) {
+                statusDiv.textContent = 'Connected to SSE Stream';
+                statusDiv.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+
+        function updateProgress(percent, text) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            progressBar.style.width = percent + '%';
+            progressText.textContent = text || `${percent}%`;
+        }
+
+        async function testPromptsListFixed() {
+            try {
+                log('🔧 Testing prompts/list endpoint (Should NOT have ZodError)...', 'info');
+                const response = await fetch(`${serverUrl}/mcp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        id: Date.now(),
+                        method: "prompts/list"
+                    })
+                });
+                const result = await response.json();
+                
+                // Check if nextCursor is present in the response
+                const hasNextCursor = result.result && 'nextCursor' in result.result;
+                const nextCursorValue = result.result?.nextCursor;
+                
+                log(`✅ SUCCESS: prompts/list response received`, 'success');
+                log(`📝 nextCursor field present: ${hasNextCursor}`, 'info');
+                log(`📝 nextCursor value: ${nextCursorValue === undefined ? 'UNDEFINED (Good!)' : nextCursorValue}`, 'info');
+                log(`🔍 Full response: ${JSON.stringify(result, null, 2)}`, 'info');
+                
+                if (!hasNextCursor || nextCursorValue === undefined) {
+                    log('🎉 FIXED: nextCursor is properly omitted when null - No ZodError!', 'success');
+                } else if (nextCursorValue === null) {
+                    log('⚠️ WARNING: nextCursor is still being serialized as null', 'error');
+                } else {
+                    log(`ℹ️ INFO: nextCursor has value: ${nextCursorValue}`, 'info');
+                }
+            } catch (error) {
+                log(`❌ Error testing prompts/list: ${error.message}`, 'error');
+            }
+        }
+
+        async function testToolsList() {
+            try {
+                log('🛠️ Testing tools/list endpoint...', 'info');
+                const response = await fetch(`${serverUrl}/mcp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        id: Date.now(),
+                        method: "tools/list"
+                    })
+                });
+                const result = await response.json();
+                
+                const hasNextCursor = result.result && 'nextCursor' in result.result;
+                const nextCursorValue = result.result?.nextCursor;
+                
+                log(`✅ tools/list response received`, 'success');
+                log(`📝 nextCursor field present: ${hasNextCursor}`, 'info');
+                log(`📝 nextCursor value: ${nextCursorValue === undefined ? 'UNDEFINED (Good!)' : nextCursorValue}`, 'info');
+                log(`🔧 Tools count: ${result.result?.tools?.length || 0}`, 'info');
+            } catch (error) {
+                log(`❌ Error testing tools/list: ${error.message}`, 'error');
+            }
+        }
+
+        async function testResources() {
+            try {
+                log('📚 Testing resources/list endpoint...', 'info');
+                const response = await fetch(`${serverUrl}/mcp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        id: Date.now(),
+                        method: "resources/list"
+                    })
+                });
+                const result = await response.json();
+                log(`✅ resources/list response: ${JSON.stringify(result, null, 2)}`, 'success');
+            } catch (error) {
+                log(`❌ Error testing resources/list: ${error.message}`, 'error');
+            }
+        }
+
+        function connect() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource(`${serverUrl}/sse/stream`);
+
+            eventSource.onopen = function(event) {
+                log('Connected to SSE stream', 'connected');
+                updateStatus(true);
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    log(`Message: ${JSON.stringify(data, null, 2)}`);
+                } catch (e) {
+                    log(`Raw message: ${event.data}`);
+                }
+            };
+
+            eventSource.addEventListener('connected', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Server connection established: ${data.server} v${data.version}`, 'connected');
+            });
+
+            eventSource.addEventListener('restaurant-update', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Restaurant update: ${data.action} - ${data.restaurant.name}`, 'restaurant-data');
+            });
+
+            eventSource.addEventListener('heartbeat', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Heartbeat: ${data.activeConnections} active connections`, 'heartbeat');
+            });
+
+            eventSource.onerror = function(event) {
+                log('SSE connection error', 'error');
+                updateStatus(false);
+            };
+
+            eventSource.onclose = function(event) {
+                log('SSE connection closed', 'error');
+                updateStatus(false);
+            };
+        }
+
+        function disconnect() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                updateStatus(false);
+                log('Disconnected from SSE stream');
+            }
+        }
+
+        function streamRestaurants() {
+            if (toolEventSource) {
+                toolEventSource.close();
+            }
+
+            log('Starting restaurant stream...');
+            updateProgress(0, 'Starting...');
+
+            toolEventSource = new EventSource(`${serverUrl}/sse/tools/get_restaurants_stream`);
+
+            toolEventSource.addEventListener('tool-start', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Tool started: ${data.tool}`, 'info');
+            });
+
+            toolEventSource.addEventListener('restaurant-stream-start', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Loading ${data.totalCount} restaurants...`, 'restaurant-data');
+                updateProgress(0, `Loading ${data.totalCount} restaurants...`);
+            });
+
+            toolEventSource.addEventListener('restaurant-data', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Restaurant ${data.index}/${data.total}: ${data.restaurant.name}`, 'restaurant-data');
+                updateProgress(data.progress, `${data.index}/${data.total}: ${data.restaurant.name}`);
+            });
+
+            toolEventSource.addEventListener('restaurant-stream-complete', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Completed: ${data.message}`, 'connected');
+                updateProgress(100, 'Complete!');
+                toolEventSource.close();
+            });
+
+            toolEventSource.addEventListener('tool-complete', function(event) {
+                log('Tool execution completed', 'connected');
+                toolEventSource.close();
+            });
+
+            toolEventSource.onerror = function(event) {
+                log('Tool stream error', 'error');
+                toolEventSource.close();
+            };
+        }
+
+        function streamAnalysis() {
+            if (toolEventSource) {
+                toolEventSource.close();
+            }
+
+            const analysisType = document.getElementById('analysisType').value;
+            const args = encodeURIComponent(JSON.stringify({type: analysisType}));
+            
+            log(`Starting analysis stream (${analysisType})...`);
+            updateProgress(0, 'Starting analysis...');
+
+            toolEventSource = new EventSource(`${serverUrl}/sse/tools/analyze_restaurants_stream?arguments=${args}`);
+
+            toolEventSource.addEventListener('analysis-progress', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Analysis: ${data.step}`, 'info');
+                updateProgress(data.progress, data.step);
+            });
+
+            toolEventSource.addEventListener('analysis-result', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Analysis complete: ${JSON.stringify(data.analysis, null, 2)}`, 'connected');
+                updateProgress(100, 'Analysis complete!');
+                toolEventSource.close();
+            });
+
+            toolEventSource.addEventListener('tool-complete', function(event) {
+                log('Analysis tool completed', 'connected');
+                toolEventSource.close();
+            });
+
+            toolEventSource.onerror = function(event) {
+                log('Analysis stream error', 'error');
+                toolEventSource.close();
+            };
+        }
+
+        function streamSearch() {
+            if (toolEventSource) {
+                toolEventSource.close();
+            }
+
+            const query = document.getElementById('searchQuery').value;
+            const args = encodeURIComponent(JSON.stringify({query: query}));
+            
+            log(`Starting search stream for: "${query}"...`);
+            updateProgress(0, 'Starting search...');
+
+            toolEventSource = new EventSource(`${serverUrl}/sse/tools/search_restaurants_stream?arguments=${args}`);
+
+            toolEventSource.addEventListener('search-start', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Search started: ${data.message}`, 'info');
+                updateProgress(25, 'Searching...');
+            });
+
+            toolEventSource.addEventListener('search-result', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Found: ${data.match.name} - ${data.match.location}`, 'restaurant-data');
+                updateProgress(75, `Found: ${data.match.name}`);
+            });
+
+            toolEventSource.addEventListener('search-complete', function(event) {
+                const data = JSON.parse(event.data);
+                log(`Search complete: ${data.message}`, 'connected');
+                updateProgress(100, 'Search complete!');
+                toolEventSource.close();
+            });
+
+            toolEventSource.addEventListener('tool-complete', function(event) {
+                log('Search tool completed', 'connected');
+                toolEventSource.close();
+            });
+
+            toolEventSource.onerror = function(event) {
+                log('Search stream error', 'error');
+                toolEventSource.close();
+            };
+        }
+
+        async function getRestaurants() {
+            try {
+                log('Calling get_restaurants...');
+                const response = await fetch(`${serverUrl}/mcp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        id: Date.now(),
+                        method: "tools/call",
+                        params: { name: "get_restaurants" }
+                    })
+                });
+                const result = await response.json();
+                log(`Restaurants: ${JSON.stringify(result, null, 2)}`, 'connected');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function addRestaurant() {
+            const name = prompt('Restaurant name:');
+            const location = prompt('Location:');
+            const foodType = prompt('Food type:');
+            
+            if (!name || !location || !foodType) return;
+
+            try {
+                log(`Adding restaurant: ${name}...`);
+                const response = await fetch(`${serverUrl}/mcp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        id: Date.now(),
+                        method: "tools/call",
+                        params: { 
+                            name: "add_restaurant",
+                            arguments: { name, location, foodType }
+                        }
+                    })
+                });
+                const result = await response.json();
+                log(`Restaurant added: ${JSON.stringify(result, null, 2)}`, 'connected');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function pickRandom() {
+            try {
+                log('Picking random restaurant...');
+                const response = await fetch(`${serverUrl}/mcp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        id: Date.now(),
+                        method: "tools/call",
+                        params: { name: "pick_random_restaurant" }
+                    })
+                });
+                const result = await response.json();
+                log(`Random pick: ${JSON.stringify(result, null, 2)}`, 'connected');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getStats() {
+            try {
+                log('Getting visit statistics...');
+                const response = await fetch(`${serverUrl}/mcp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        id: Date.now(),
+                        method: "tools/call",
+                        params: { name: "get_visit_stats" }
+                    })
+                });
+                const result = await response.json();
+                log(`Visit stats: ${JSON.stringify(result, null, 2)}`, 'connected');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            log('🎉 Demo loaded! ZodError has been fixed.', 'success');
+            log('Click "Test Prompts List (Fixed)" to verify the fix.', 'info');
+        };
+
+        window.onbeforeunload = function() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            if (toolEventSource) {
+                toolEventSource.close();
+            }
+        };
+    </script>
+</body>
+</html>

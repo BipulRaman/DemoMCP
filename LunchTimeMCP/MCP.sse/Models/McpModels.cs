@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MCP.http.Models;
+namespace MCP.sse.Models;
 
 // JSON-RPC 2.0 Base Classes
 public class JsonRpcRequest
@@ -54,38 +54,32 @@ public class JsonRpcError
     public object? Data { get; set; }
 }
 
-// Streaming Support Models
-public class StreamingJsonRpcResponse
+// SSE Specific Models
+public class SseEvent
 {
-    [JsonPropertyName("jsonrpc")]
-    public string JsonRpc { get; set; } = "2.0";
+    [JsonPropertyName("event")]
+    public string Event { get; set; } = "";
+    
+    [JsonPropertyName("data")]
+    public object? Data { get; set; }
     
     [JsonPropertyName("id")]
-    public object? Id { get; set; }
-    
-    [JsonPropertyName("result")]
-    public object? Result { get; set; }
-    
-    [JsonPropertyName("error")]
-    public JsonRpcError? Error { get; set; }
-    
-    [JsonPropertyName("streaming")]
-    public StreamingInfo? Streaming { get; set; }
-}
-
-public class StreamingInfo
-{
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = "partial"; // "partial", "complete", "error"
-    
-    [JsonPropertyName("sequence")]
-    public int Sequence { get; set; }
-    
-    [JsonPropertyName("total")]
-    public int? Total { get; set; }
+    public string? Id { get; set; }
     
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+}
+
+public class SseToolRequest
+{
+    [JsonPropertyName("tool")]
+    public string Tool { get; set; } = "";
+    
+    [JsonPropertyName("arguments")]
+    public Dictionary<string, object>? Arguments { get; set; }
+    
+    [JsonPropertyName("requestId")]
+    public string RequestId { get; set; } = Guid.NewGuid().ToString();
 }
 
 // MCP Specific Models
@@ -124,8 +118,8 @@ public class McpStreamingCapability
     [JsonPropertyName("supported")]
     public bool Supported { get; set; } = true;
     
-    [JsonPropertyName("protocols")]
-    public string[] Protocols { get; set; } = { "sse", "chunked-json" };
+    [JsonPropertyName("protocol")]
+    public string Protocol { get; set; } = "sse";
 }
 
 public class McpClientInfo
@@ -161,7 +155,7 @@ public class McpServerCapabilities
     public McpPromptsCapability? Prompts { get; set; }
     
     [JsonPropertyName("streaming")]
-    public McpStreamingServerCapability? Streaming { get; set; }
+    public McpSseStreamingCapability? Streaming { get; set; }
 }
 
 public class McpToolsCapability
@@ -188,31 +182,28 @@ public class McpPromptsCapability
     public bool? ListChanged { get; set; }
 }
 
-public class McpStreamingServerCapability
+public class McpSseStreamingCapability
 {
     [JsonPropertyName("supported")]
     public bool Supported { get; set; } = true;
     
-    [JsonPropertyName("protocols")]
-    public string[] Protocols { get; set; } = { "sse", "chunked-json" };
+    [JsonPropertyName("protocol")]
+    public string Protocol { get; set; } = "sse";
     
-    [JsonPropertyName("toolStreaming")]
-    public bool ToolStreaming { get; set; } = true;
-    
-    [JsonPropertyName("promptStreaming")]
-    public bool PromptStreaming { get; set; } = true;
+    [JsonPropertyName("eventTypes")]
+    public string[] EventTypes { get; set; } = { "tool-result", "restaurant-update", "error", "heartbeat" };
 }
 
 public class McpServerInfo
 {
     [JsonPropertyName("name")]
-    public string Name { get; set; } = "LunchTime MCP Server";
+    public string Name { get; set; } = "LunchTime MCP SSE Server";
     
     [JsonPropertyName("version")]
     public string Version { get; set; } = "1.0.0";
     
     [JsonPropertyName("description")]
-    public string? Description { get; set; } = "Streamable HTTP-based MCP server for lunch restaurant management";
+    public string? Description { get; set; } = "Server-Sent Events based MCP server for lunch restaurant management";
 }
 
 // Tools
@@ -254,9 +245,6 @@ public class McpToolCallParams
     
     [JsonPropertyName("arguments")]
     public Dictionary<string, object>? Arguments { get; set; }
-    
-    [JsonPropertyName("streaming")]
-    public bool? Streaming { get; set; }
 }
 
 public class McpToolCallResult
@@ -280,19 +268,16 @@ public class McpToolCallMetadata
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     
     [JsonPropertyName("streaming")]
-    public StreamingMetadata? Streaming { get; set; }
+    public bool Streaming { get; set; } = true;
 }
 
-public class StreamingMetadata
+public class McpContent
 {
-    [JsonPropertyName("chunkNumber")]
-    public int ChunkNumber { get; set; }
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "text";
     
-    [JsonPropertyName("totalChunks")]
-    public int? TotalChunks { get; set; }
-    
-    [JsonPropertyName("isLast")]
-    public bool IsLast { get; set; }
+    [JsonPropertyName("text")]
+    public string? Text { get; set; }
 }
 
 // Prompts
@@ -361,43 +346,6 @@ public class McpPromptMessage
     
     [JsonPropertyName("content")]
     public McpContent Content { get; set; } = new();
-}
-
-public class McpContent
-{
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = "text";
-    
-    [JsonPropertyName("text")]
-    public string? Text { get; set; }
-}
-
-// Streaming-specific response models
-public class StreamingToolCallRequest
-{
-    [JsonPropertyName("toolName")]
-    public string ToolName { get; set; } = "";
-    
-    [JsonPropertyName("arguments")]
-    public Dictionary<string, object>? Arguments { get; set; }
-    
-    [JsonPropertyName("requestId")]
-    public string RequestId { get; set; } = Guid.NewGuid().ToString();
-    
-    [JsonPropertyName("streaming")]
-    public StreamingOptions? Streaming { get; set; }
-}
-
-public class StreamingOptions
-{
-    [JsonPropertyName("protocol")]
-    public string Protocol { get; set; } = "sse"; // "sse" or "chunked-json"
-    
-    [JsonPropertyName("chunkSize")]
-    public int? ChunkSize { get; set; }
-    
-    [JsonPropertyName("enableMetadata")]
-    public bool EnableMetadata { get; set; } = true;
 }
 
 // Resources Support Models

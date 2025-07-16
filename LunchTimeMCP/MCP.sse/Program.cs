@@ -1,4 +1,4 @@
-using MCP.http.Services;
+using MCP.sse.Services;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,10 +12,10 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
-// Add CORS for MCP with streaming support
+// Add CORS for MCP with SSE support
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("McpPolicy", policy =>
+    options.AddPolicy("McpSsePolicy", policy =>
     {
         policy.AllowAnyOrigin()
               .AllowAnyMethod()
@@ -26,7 +26,7 @@ builder.Services.AddCors(options =>
 
 // Add MCP Services
 builder.Services.AddSingleton<RestaurantService>();
-builder.Services.AddSingleton<StreamingService>();
+builder.Services.AddSingleton<SseStreamingService>();
 
 var app = builder.Build();
 
@@ -46,7 +46,7 @@ else
 }
 
 // Enable CORS
-app.UseCors("McpPolicy");
+app.UseCors("McpSsePolicy");
 
 app.UseAuthorization();
 app.MapControllers();
@@ -54,36 +54,36 @@ app.MapControllers();
 // Add a simple health check endpoint for monitoring
 app.MapGet("/health", () => new { 
     status = "healthy", 
-    streaming = "available",
+    server_type = "sse",
+    streaming = "server-sent-events",
     timestamp = DateTime.UtcNow 
 });
 
 // Add an endpoint to check MCP server info (for debugging)
 app.MapGet("/", () => new { 
-    name = "LunchTime MCP Streaming Server", 
+    name = "LunchTime MCP SSE Server", 
     version = "1.0.0", 
-    description = "Streamable HTTP-based Model Context Protocol server for managing lunch restaurant choices",
+    description = "Server-Sent Events based Model Context Protocol server for managing lunch restaurant choices",
+    server_type = "sse",
     streaming = new {
         supported = true,
-        protocols = new[] { "sse", "chunked-json" },
-        features = new[] { "tool-streaming", "real-time-data", "progressive-loading" }
+        protocol = "server-sent-events",
+        features = new[] { "real-time-streaming", "auto-reconnection", "event-based-communication" }
     },
     endpoints = new { 
         mcp_jsonrpc = "/mcp (POST with JSON-RPC 2.0)",
         mcp_initialize = "/mcp/initialize (GET)",
         mcp_tools = "/mcp/tools (GET)",
-        streaming_capabilities = "/mcp/stream/capabilities (GET)",
-        streaming_sse = "/mcp/stream/tools/call/sse (POST)",
-        streaming_chunked = "/mcp/stream/tools/call/chunked (POST)",
-        restaurant_stream = "/mcp/stream/restaurants/sse (GET)",
+        sse_stream = "/sse/stream (GET)",
+        sse_tools = "/sse/tools/{toolName} (GET)",
         health = "/health"
     },
     documentation = new {
         jsonrpc_usage = "Send POST requests to /mcp with JSON-RPC 2.0 format",
         http_usage = "Use GET endpoints for direct HTTP access",
-        streaming_usage = "Use /mcp/stream endpoints for real-time streaming responses",
+        sse_usage = "Connect to /sse/stream for real-time Server-Sent Events",
         supported_methods = new[] { "initialize", "tools/list", "tools/call", "prompts/list", "prompts/get" },
-        streaming_tools = new[] { "get_restaurants_stream", "analyze_restaurants_stream", "search_restaurants_stream" }
+        sse_events = new[] { "tool-result", "restaurant-update", "error", "heartbeat" }
     }
 });
 

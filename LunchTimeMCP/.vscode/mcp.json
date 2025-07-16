@@ -1,16 +1,6 @@
 {
     "inputs": [],
-    "servers": {
-        "lunchroulette": {
-            "type": "stdio",
-            "command": "dotnet",
-            "args": [
-                "run",
-                "--project",
-                "C:\\Code\\GitHub\\DemoMCP\\LunchTimeMCP\\MCP.stdio\\LunchTimeMCP.csproj"
-            ],
-            "env": {}
-        },
+    "servers": {        
         "lunchtime-mcp": {
             "type": "http",
             "url": "http://localhost:5073/mcp"
