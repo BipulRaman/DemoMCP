@@ -18,7 +18,15 @@ builder.Services.AddHttpContextAccessor();
 
 // Configure MCP Server with tools
 builder.Services
-    .AddMcpServer()
+    .AddMcpServer(options =>
+    {
+        // Configure for Azure deployment
+        options.ServerInfo = new()
+        {
+            Name = "restaurant-server",
+            Version = "1.0.0"
+        };
+    })
     .WithTools<RestaurantTools>()
     .WithHttpTransport();
 
@@ -26,6 +34,17 @@ builder.Services.AddSingleton<RestaurantService>();
 
 // Add health checks for Azure
 builder.Services.AddHealthChecks();
+
+// Add CORS for web clients
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
 
 // Configure HttpClient for external APIs
 builder.Services.AddHttpClient("RestaurantApi", client =>
@@ -35,13 +54,21 @@ builder.Services.AddHttpClient("RestaurantApi", client =>
 
 var app = builder.Build();
 
+// Enable CORS
+app.UseCors();
+
+// Add more detailed logging for troubleshooting
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
+    await next();
+    Console.WriteLine($"Response: {context.Response.StatusCode}");
+});
+
 // Map MCP endpoints
 app.MapMcp();
 
 // Add health check endpoint for Azure
 app.MapHealthChecks("/health");
-
-Console.WriteLine($"Starting MCP Restaurant server at {app.Urls}");
-Console.WriteLine("Press Ctrl+C to stop the server");
 
 app.Run();
