@@ -41,41 +41,29 @@ The **MCP.stdio** server is a comprehensive implementation of the Model Context 
 
 The MCP.stdio server follows a clean, service-oriented architecture optimized for stdio transport:
 
-```mermaid
-flowchart TD
-  %% MCP.stdio Server Block
-  subgraph MCP.stdio_Server["MCP.stdio Server"]
-    Tools["RestaurantTools\n[McpServerTool]"]
-    Services["RestaurantService\n[Singleton]"]
-    Models["Restaurant\n[JsonCtx]"]
-    Tools -->|Business Calls| Services
-    Services -->|Model Access| Models
-  end
-
-  %% Microsoft MCP SDK Block
-  subgraph MCP_SDK["Microsoft MCP SDK"]
-    Stdio["Stdio Transport"]
-    JSONRPC["JSON-RPC 2.0"]
-    ToolReg["Tool Registration"]
-    Stdio --> JSONRPC --> ToolReg
-  end
-
-  %% .NET Host Block
-  subgraph DotNetHost[".NET Host & DI"]
-    Hosting["Host & DI Container"]
-  end
-
-  %% Data Layer Block
-  subgraph DataLayer["Data Layer"]
-    Storage["JSON File Storage\n(AppData)"]
-  end
-
-  %% Relationships
-  Tools -.->|Registers Tools| ToolReg
-  MCP.stdio_Server -->|Uses| MCP_SDK
-  MCP_SDK -->|Hosted By| DotNetHost
-  MCP.stdio_Server -->|Hosted By| DotNetHost
-  Services -->|Persists Data| Storage
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   MCP.stdio Server                                         │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────────────┐      │
+│  │        Tools         │  │      Services        │  │           Models             │      │
+│  │                      │  │                      │  │                              │      │
+│  │  RestaurantTools     │◄─┤  RestaurantService   │  │        Restaurant            │      │
+│  │  [McpServerTool]     │  │    [Singleton]       │  │        [JsonCtx]             │      │
+│  │                      │  │                      │  │                              │      │
+│  └──────────────────────┘  └──────────────────────┘  └──────────────────────────────┘      │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│                          .NET Host & Stdio Transport                                       │
+│  ┌───────────────┐   ┌───────────────┐   ┌───────────────┐                                 │
+│  │   Host/DI     │→──│  Stdio Comm.  │→──│   JSON-RPC    │                                 │
+│  └───────────────┘   └───────────────┘   └───────────────┘                                 │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                      Data Layer                                            │
+│  ┌──────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                        JSON File Storage (AppData)                                   │  │
+│  │      %APPDATA%/LunchTimeMCP/restaurants.json                                         │  │
+│  └──────────────────────────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Architectural Principles
