@@ -1,5 +1,29 @@
 # Model Context Protocol (MCP) Demo Projects
 
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [What is MCP?](#what-is-mcp)
+- [Key Benefits of MCP](#key-benefits-of-mcp)
+- [Core Components](#core-components)
+- [Transport Types](#transport-types)
+  - [STDIO Transport](#stdio-transport)
+  - [HTTP Transport](#http-transport)
+  - [Server-Sent Events (SSE) Transport](#server-sent-events-sse-transport)
+  - [WebSocket Transport](#websocket-transport)
+  - [Transport Selection Guidelines](#transport-selection-guidelines)
+  - [Security Considerations by Transport](#security-considerations-by-transport)
+- [Testing and Development](#testing-and-development)
+  - [MCP Inspector](#mcp-inspector)
+  - [VS Code Integration](#vs-code-integration)
+- [Best Practices](#best-practices)
+  - [Tool Design](#tool-design)
+  - [Service Architecture](#service-architecture)
+  - [Security Considerations](#security-considerations)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Resources](#resources)
+
 ## Overview
 This repository contains demonstration projects showcasing the Model Context Protocol (MCP) implementation using C#. The projects illustrate how to build, configure, and integrate MCP servers with AI assistants.
 
