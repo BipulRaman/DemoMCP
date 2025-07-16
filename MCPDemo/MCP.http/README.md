@@ -1,4 +1,4 @@
-# LunchTime MCP Streaming Server
+﻿# LunchTime MCP Streaming Server
 
 An HTTP-based Model Context Protocol (MCP) server with chunked JSON streaming for managing lunch restaurant choices with real-time progressive data loading.
 
@@ -42,7 +42,7 @@ An HTTP-based Model Context Protocol (MCP) server with chunked JSON streaming fo
 ## Usage
 
 ### Starting the Server
-cd MCP.sse
+cd MCP.http
 dotnet run
 The server will start on `http://localhost:5227` by default.
 
@@ -199,7 +199,7 @@ The server automatically enables streaming when:
   "result": {
     "content": [{
       "type": "text",
-      "text": "**1. Guelaguetza**\n?? Location: 3014 W Olympic Blvd\n?? Food Type: Oaxacan Mexican\n?? Added: 2024-01-15"
+      "text": "**1. Guelaguetza**\n📍 Location: 3014 W Olympic Blvd\n🍴 Food Type: Oaxacan Mexican\n📅 Added: 2024-01-15"
     }],
     "metadata": {
       "timestamp": "2024-01-15T10:30:00Z",
@@ -224,7 +224,7 @@ The server automatically enables streaming when:
   "result": {
     "content": [{
       "type": "text",
-      "text": "\n? **Streaming Complete**\n?? Total restaurants loaded: 10"
+      "text": "\n✅ **Streaming Complete**\n📊 Total restaurants loaded: 10"
     }],
     "metadata": {
       "timestamp": "2024-01-15T10:30:00Z",
@@ -258,7 +258,7 @@ Restaurant data is stored in JSON format in the user's application data director
 
 ## Testing
 
-Use the included `MCP.sse.http` file with Visual Studio or VS Code REST Client extension to test all endpoints.
+Use the included `MCP.http.http` file with Visual Studio or VS Code REST Client extension to test all endpoints.
 
 For streaming testing, use:
 - Browser Fetch API with ReadableStream

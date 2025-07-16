@@ -1,10 +1,10 @@
-using MCP.sse.Models;
-using MCP.sse.Services;
+using MCP.http.Models;
+using MCP.http.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Text.Json;
 
-namespace MCP.sse.Controllers;
+namespace MCP.http.Controllers;
 
 /// <summary>
 /// MCP (Model Context Protocol) server implementation with streaming support using JSON-RPC 2.0
@@ -47,13 +47,13 @@ public class McpServerController : ControllerBase
 
             var response = request.Method switch
             {
-                "initialize" => (object)HandleInitialize(request),
-                "tools/list" => (object)HandleToolsList(request),
+                "initialize" => HandleInitialize(request),
+                "tools/list" => HandleToolsList(request),
                 "tools/call" => await HandleToolCallWithStreaming(request),
-                "prompts/list" => (object)HandlePromptsList(request),
-                "prompts/get" => (object)HandlePromptsGet(request),
-                "resources/list" => (object)HandleResourcesList(request),
-                _ => (object)CreateErrorResponse(request.Id, -32601, $"Method not found: {request.Method}")
+                "prompts/list" => HandlePromptsList(request),
+                "prompts/get" => HandlePromptsGet(request),
+                "resources/list" => HandleResourcesList(request),
+                _ => CreateErrorResponse(request.Id, -32601, $"Method not found: {request.Method}")
             };
 
             // For streaming responses, return directly (they handle their own response)
@@ -459,7 +459,7 @@ public class McpServerController : ControllerBase
         };
     }
 
-    private JsonRpcErrorResponse CreateErrorResponse(object? id, int code, string message, object? data = null)
+    private JsonRpcErrorResponse CreateErrorResponse(object id, int code, string message, object data = null)
     {
         return new JsonRpcErrorResponse
         {

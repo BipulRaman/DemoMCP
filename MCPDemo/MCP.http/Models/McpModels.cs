@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MCP.sse.Models;
+namespace MCP.http.Models;
 
 // JSON-RPC 2.0 Base Classes
 public class JsonRpcRequest
@@ -9,13 +9,13 @@ public class JsonRpcRequest
     public string JsonRpc { get; set; } = "2.0";
     
     [JsonPropertyName("id")]
-    public object? Id { get; set; }
+    public object Id { get; set; }
     
     [JsonPropertyName("method")]
-    public string? Method { get; set; }
+    public string Method { get; set; }
     
     [JsonPropertyName("params")]
-    public object? Params { get; set; }
+    public object Params { get; set; }
 }
 
 public class JsonRpcResponse
@@ -24,10 +24,10 @@ public class JsonRpcResponse
     public string JsonRpc { get; set; } = "2.0";
     
     [JsonPropertyName("id")]
-    public object? Id { get; set; }
+    public object Id { get; set; }
     
     [JsonPropertyName("result")]
-    public object? Result { get; set; }
+    public object Result { get; set; }
 }
 
 public class JsonRpcErrorResponse
@@ -36,7 +36,7 @@ public class JsonRpcErrorResponse
     public string JsonRpc { get; set; } = "2.0";
     
     [JsonPropertyName("id")]
-    public object? Id { get; set; }
+    public object Id { get; set; }
     
     [JsonPropertyName("error")]
     public JsonRpcError Error { get; set; } = new();
@@ -51,7 +51,7 @@ public class JsonRpcError
     public string Message { get; set; } = "";
     
     [JsonPropertyName("data")]
-    public object? Data { get; set; }
+    public object Data { get; set; }
 }
 
 // Streaming Support Models
@@ -61,16 +61,16 @@ public class StreamingJsonRpcResponse
     public string JsonRpc { get; set; } = "2.0";
     
     [JsonPropertyName("id")]
-    public object? Id { get; set; }
+    public object Id { get; set; }
     
     [JsonPropertyName("result")]
-    public object? Result { get; set; }
+    public object Result { get; set; }
     
     [JsonPropertyName("error")]
-    public JsonRpcError? Error { get; set; }
+    public JsonRpcError Error { get; set; }
     
     [JsonPropertyName("streaming")]
-    public StreamingInfo? Streaming { get; set; }
+    public StreamingInfo Streaming { get; set; }
 }
 
 public class StreamingInfo
@@ -95,22 +95,22 @@ public class McpInitializeParams
     public string ProtocolVersion { get; set; } = "2024-11-05";
     
     [JsonPropertyName("capabilities")]
-    public McpClientCapabilities? Capabilities { get; set; }
+    public McpClientCapabilities Capabilities { get; set; }
     
     [JsonPropertyName("clientInfo")]
-    public McpClientInfo? ClientInfo { get; set; }
+    public McpClientInfo ClientInfo { get; set; }
 }
 
 public class McpClientCapabilities
 {
     [JsonPropertyName("roots")]
-    public McpRootsCapability? Roots { get; set; }
+    public McpRootsCapability Roots { get; set; }
     
     [JsonPropertyName("sampling")]
-    public object? Sampling { get; set; }
+    public object Sampling { get; set; }
     
     [JsonPropertyName("streaming")]
-    public McpStreamingCapability? Streaming { get; set; }
+    public McpStreamingCapability Streaming { get; set; }
 }
 
 public class McpRootsCapability
@@ -152,16 +152,16 @@ public class McpInitializeResult
 public class McpServerCapabilities
 {
     [JsonPropertyName("tools")]
-    public McpToolsCapability? Tools { get; set; }
+    public McpToolsCapability Tools { get; set; }
     
     [JsonPropertyName("resources")]
-    public McpResourcesCapability? Resources { get; set; }
+    public McpResourcesCapability Resources { get; set; }
     
     [JsonPropertyName("prompts")]
-    public McpPromptsCapability? Prompts { get; set; }
+    public McpPromptsCapability Prompts { get; set; }
     
     [JsonPropertyName("streaming")]
-    public McpStreamingServerCapability? Streaming { get; set; }
+    public McpStreamingServerCapability Streaming { get; set; }
 }
 
 public class McpToolsCapability
@@ -212,14 +212,14 @@ public class McpServerInfo
     public string Version { get; set; } = "1.0.0";
     
     [JsonPropertyName("description")]
-    public string? Description { get; set; } = "HTTP-based MCP server with chunked streaming for lunch restaurant management";
+    public string Description { get; set; } = "HTTP-based MCP server with chunked streaming for lunch restaurant management";
 }
 
 // Tools
 public class McpToolsListParams
 {
     [JsonPropertyName("cursor")]
-    public string? Cursor { get; set; }
+    public string Cursor { get; set; }
 }
 
 public class McpToolsListResult
@@ -229,7 +229,7 @@ public class McpToolsListResult
     
     [JsonPropertyName("nextCursor")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? NextCursor { get; set; }
+    public string NextCursor { get; set; }
 }
 
 public class McpTool
@@ -238,7 +238,7 @@ public class McpTool
     public string Name { get; set; } = "";
     
     [JsonPropertyName("description")]
-    public string? Description { get; set; }
+    public string Description { get; set; }
     
     [JsonPropertyName("inputSchema")]
     public object InputSchema { get; set; } = new { };
@@ -253,7 +253,7 @@ public class McpToolCallParams
     public string Name { get; set; } = "";
     
     [JsonPropertyName("arguments")]
-    public Dictionary<string, object>? Arguments { get; set; }
+    public Dictionary<string, object> Arguments { get; set; }
     
     [JsonPropertyName("streaming")]
     public bool? Streaming { get; set; }
@@ -268,7 +268,7 @@ public class McpToolCallResult
     public bool? IsError { get; set; }
     
     [JsonPropertyName("metadata")]
-    public McpToolCallMetadata? Metadata { get; set; }
+    public McpToolCallMetadata Metadata { get; set; }
 }
 
 public class McpToolCallMetadata
@@ -280,7 +280,7 @@ public class McpToolCallMetadata
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     
     [JsonPropertyName("streaming")]
-    public StreamingMetadata? Streaming { get; set; }
+    public StreamingMetadata Streaming { get; set; }
 }
 
 public class StreamingMetadata
@@ -301,14 +301,14 @@ public class McpContent
     public string Type { get; set; } = "text";
     
     [JsonPropertyName("text")]
-    public string? Text { get; set; }
+    public string Text { get; set; }
 }
 
 // Prompts
 public class McpPromptsListParams
 {
     [JsonPropertyName("cursor")]
-    public string? Cursor { get; set; }
+    public string Cursor { get; set; }
 }
 
 public class McpPromptsListResult
@@ -318,7 +318,7 @@ public class McpPromptsListResult
     
     [JsonPropertyName("nextCursor")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? NextCursor { get; set; }
+    public string NextCursor { get; set; }
 }
 
 public class McpPrompt
@@ -327,10 +327,10 @@ public class McpPrompt
     public string Name { get; set; } = "";
     
     [JsonPropertyName("description")]
-    public string? Description { get; set; }
+    public string Description { get; set; }
     
     [JsonPropertyName("arguments")]
-    public McpPromptArgument[]? Arguments { get; set; }
+    public McpPromptArgument[] Arguments { get; set; }
 }
 
 public class McpPromptArgument
@@ -339,7 +339,7 @@ public class McpPromptArgument
     public string Name { get; set; } = "";
     
     [JsonPropertyName("description")]
-    public string? Description { get; set; }
+    public string Description { get; set; }
     
     [JsonPropertyName("required")]
     public bool? Required { get; set; }
@@ -351,13 +351,13 @@ public class McpPromptGetParams
     public string Name { get; set; } = "";
     
     [JsonPropertyName("arguments")]
-    public Dictionary<string, string>? Arguments { get; set; }
+    public Dictionary<string, string> Arguments { get; set; }
 }
 
 public class McpPromptGetResult
 {
     [JsonPropertyName("description")]
-    public string? Description { get; set; }
+    public string Description { get; set; }
     
     [JsonPropertyName("messages")]
     public McpPromptMessage[] Messages { get; set; } = Array.Empty<McpPromptMessage>();
@@ -379,13 +379,13 @@ public class StreamingToolCallRequest
     public string ToolName { get; set; } = "";
     
     [JsonPropertyName("arguments")]
-    public Dictionary<string, object>? Arguments { get; set; }
+    public Dictionary<string, object> Arguments { get; set; }
     
     [JsonPropertyName("requestId")]
     public string RequestId { get; set; } = Guid.NewGuid().ToString();
     
     [JsonPropertyName("streaming")]
-    public StreamingOptions? Streaming { get; set; }
+    public StreamingOptions Streaming { get; set; }
 }
 
 public class StreamingOptions
@@ -416,8 +416,8 @@ public class McpResource
     public string Name { get; set; } = "";
     
     [JsonPropertyName("description")]
-    public string? Description { get; set; }
+    public string Description { get; set; }
     
     [JsonPropertyName("mimeType")]
-    public string? MimeType { get; set; }
+    public string MimeType { get; set; }
 }

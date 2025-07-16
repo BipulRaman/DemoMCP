@@ -1,4 +1,4 @@
-using MCP.sse.Services;
+using MCP.http.Services;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);

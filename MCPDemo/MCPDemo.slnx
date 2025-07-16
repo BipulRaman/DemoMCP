@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MCP.http/MCP.http.csproj" Id="678383a0-8bc5-4538-81d4-8bcfbc68712e" />
+  <Project Path="MCP.stdio/MCP.stdio.csproj" />
+</Solution>

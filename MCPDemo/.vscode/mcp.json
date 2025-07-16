@@ -7,7 +7,7 @@
             "args": [
                 "run",
                 "--project",
-                "C:\\Code\\GitHub\\DemoMCP\\LunchTimeMCP\\MCP.stdio\\MCP.stdio.csproj"
+                "C:\\Code\\GitHub\\DemoMCP\\MCPDemo\\MCP.stdio\\MCP.stdio.csproj"
             ],
             "env": {}
         },

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MCP.sse.Models;
+namespace MCP.http.Models;
 
 public class Restaurant
 {

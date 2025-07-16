@@ -1,8 +1,8 @@
-using MCP.sse.Models;
+using MCP.http.Models;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
-namespace MCP.sse.Services;
+namespace MCP.http.Services;
 
 public class StreamingService
 {
@@ -15,7 +15,7 @@ public class StreamingService
         _logger = logger;
     }
 
-    public async Task<string> ExecuteToolAsync(string toolName, Dictionary<string, object>? arguments)
+    public async Task<string> ExecuteToolAsync(string toolName, Dictionary<string, object> arguments)
     {
         var startTime = DateTime.UtcNow;
         
@@ -47,7 +47,7 @@ public class StreamingService
     /// </summary>
     public async IAsyncEnumerable<string> StreamToolCallAsync(
         string toolName, 
-        Dictionary<string, object>? arguments, 
+        Dictionary<string, object> arguments, 
         string requestId,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -119,7 +119,7 @@ public class StreamingService
     }
 
     private async IAsyncEnumerable<string> StreamRestaurantAnalysisAsync(
-        Dictionary<string, object>? arguments,
+        Dictionary<string, object> arguments,
         string requestId,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -166,7 +166,7 @@ public class StreamingService
     }
 
     private async IAsyncEnumerable<string> StreamRestaurantSearchAsync(
-        Dictionary<string, object>? arguments,
+        Dictionary<string, object> arguments,
         string requestId,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -291,7 +291,7 @@ public class StreamingService
         return result + $"\nTotal: {restaurants.Count} restaurants";
     }
 
-    private async Task<string> AddRestaurantAsync(Dictionary<string, object>? arguments)
+    private async Task<string> AddRestaurantAsync(Dictionary<string, object> arguments)
     {
         if (arguments == null)
             return "Error: Missing restaurant details";

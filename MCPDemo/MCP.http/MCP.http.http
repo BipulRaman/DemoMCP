@@ -2,17 +2,17 @@
 
 ###
 # Health Check
-GET {{MCP.sse_HostAddress}}/health
+GET {{MCP.http_HostAddress}}/health
 Accept: application/json
 
 ###
 # Server Information
-GET {{MCP.sse_HostAddress}}/
+GET {{MCP.http_HostAddress}}/
 Accept: application/json
 
 ###
 # MCP Protocol - Initialize (JSON-RPC 2.0)
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -36,7 +36,7 @@ Content-Type: application/json
 
 ###
 # MCP Protocol - List Tools
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -47,7 +47,7 @@ Content-Type: application/json
 
 ###
 # MCP Protocol - List Prompts
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -58,7 +58,7 @@ Content-Type: application/json
 
 ###
 # MCP Protocol - Get Restaurant Recommendation Prompt
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -76,7 +76,7 @@ Content-Type: application/json
 
 ###
 # MCP Protocol - List Resources
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -87,7 +87,7 @@ Content-Type: application/json
 
 ###
 # MCP Protocol - Get Restaurants (Standard)
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -101,7 +101,7 @@ Content-Type: application/json
 
 ###
 # MCP Protocol - Add Restaurant
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -120,7 +120,7 @@ Content-Type: application/json
 
 ###
 # MCP Protocol - Pick Random Restaurant
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -134,7 +134,7 @@ Content-Type: application/json
 
 ###
 # MCP Protocol - Get Visit Stats
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -148,22 +148,22 @@ Content-Type: application/json
 
 ###
 # HTTP GET - Initialize (Direct HTTP)
-GET {{MCP.sse_HostAddress}}/mcp/initialize
+GET {{MCP.http_HostAddress}}/mcp/initialize
 Accept: application/json
 
 ###
 # HTTP GET - List Tools (Direct HTTP)
-GET {{MCP.sse_HostAddress}}/mcp/tools
+GET {{MCP.http_HostAddress}}/mcp/tools
 Accept: application/json
 
 ###
 # HTTP GET - Streaming Capabilities
-GET {{MCP.sse_HostAddress}}/mcp/capabilities
+GET {{MCP.http_HostAddress}}/mcp/capabilities
 Accept: application/json
 
 ###
 # STREAMING - Get Restaurants Stream (Auto-detection via tool name)
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -177,7 +177,7 @@ Content-Type: application/json
 
 ###
 # STREAMING - Get Restaurants Stream (Explicit streaming parameter)
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -192,7 +192,7 @@ Content-Type: application/json
 
 ###
 # STREAMING - Analyze Restaurants Stream (With arguments)
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -209,7 +209,7 @@ Content-Type: application/json
 
 ###
 # STREAMING - Search Restaurants Stream
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 
 {
@@ -226,7 +226,7 @@ Content-Type: application/json
 
 ###
 # STREAMING - Force streaming with header (for regular tools)
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 Accept-Streaming: chunked-json
 
@@ -242,7 +242,7 @@ Accept-Streaming: chunked-json
 
 ###
 # STREAMING - Force streaming with X-MCP-Streaming header
-POST {{MCP.sse_HostAddress}}/mcp
+POST {{MCP.http_HostAddress}}/mcp
 Content-Type: application/json
 X-MCP-Streaming: true
 

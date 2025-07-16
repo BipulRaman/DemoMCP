@@ -1,7 +1,7 @@
 using System.Text.Json;
-using MCP.sse.Models;
+using MCP.http.Models;
 
-namespace MCP.sse.Services;
+namespace MCP.http.Services;
 
 public class RestaurantService
 {
@@ -49,10 +49,10 @@ public class RestaurantService
         return Task.FromResult(restaurant);
     }
 
-    public Task<Restaurant?> PickRandomRestaurantAsync()
+    public Task<Restaurant> PickRandomRestaurantAsync()
     {
         if (_restaurants.Count == 0)
-            return Task.FromResult<Restaurant?>(null);
+            return Task.FromResult<Restaurant>(null);
 
         var random = new Random();
         var selectedRestaurant = _restaurants[random.Next(_restaurants.Count)];
@@ -62,7 +62,7 @@ public class RestaurantService
 
         SaveData();
 
-        return Task.FromResult<Restaurant?>(selectedRestaurant);
+        return Task.FromResult(selectedRestaurant);
     }
 
     public Task<Dictionary<string, RestaurantVisitInfo>> GetVisitStatsAsync()
