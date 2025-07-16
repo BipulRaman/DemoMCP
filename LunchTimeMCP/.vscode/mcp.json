@@ -1,9 +1,19 @@
 {
     "inputs": [],
-    "servers": {        
-        "lunchtime-mcp": {
+    "servers": {
+        "demo-mcp-stdio": {
+            "type": "stdio",
+            "command": "dotnet",
+            "args": [
+                "run",
+                "--project",
+                "C:\\Code\\GitHub\\DemoMCP\\LunchTimeMCP\\MCP.stdio\\MCP.stdio.csproj"
+            ],
+            "env": {}
+        },
+        "demo-mcp-http": {
             "type": "http",
-            "url": "http://localhost:5073/mcp"
+            "url": "http://localhost:5227/mcp"
         }
     }
 }
