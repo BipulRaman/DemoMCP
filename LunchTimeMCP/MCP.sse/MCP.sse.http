@@ -24,7 +24,7 @@ Content-Type: application/json
     "capabilities": {
       "streaming": {
         "supported": true,
-        "protocol": "sse"
+        "protocols": ["chunked-json"]
       }
     },
     "clientInfo": {
@@ -46,7 +46,7 @@ Content-Type: application/json
 }
 
 ###
-# MCP Protocol - List Prompts (This was causing the ZodError)
+# MCP Protocol - List Prompts
 POST {{MCP.sse_HostAddress}}/mcp
 Content-Type: application/json
 
@@ -111,7 +111,7 @@ Content-Type: application/json
   "params": {
     "name": "add_restaurant",
     "arguments": {
-      "name": "Test SSE Restaurant",
+      "name": "Test Streaming Restaurant",
       "location": "123 Test St",
       "foodType": "Test Cuisine"
     }
@@ -133,6 +133,20 @@ Content-Type: application/json
 }
 
 ###
+# MCP Protocol - Get Visit Stats
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 9,
+  "method": "tools/call",
+  "params": {
+    "name": "get_visit_stats"
+  }
+}
+
+###
 # HTTP GET - Initialize (Direct HTTP)
 GET {{MCP.sse_HostAddress}}/mcp/initialize
 Accept: application/json
@@ -143,60 +157,105 @@ GET {{MCP.sse_HostAddress}}/mcp/tools
 Accept: application/json
 
 ###
-# SSE - Get Capabilities
-GET {{MCP.sse_HostAddress}}/sse/capabilities
+# HTTP GET - Streaming Capabilities
+GET {{MCP.sse_HostAddress}}/mcp/capabilities
 Accept: application/json
 
 ###
-# SSE - Main Stream Connection (Connect with SSE client)
-# Note: This is a Server-Sent Events endpoint - use with an SSE client
-GET {{MCP.sse_HostAddress}}/sse/stream
-Accept: text/event-stream
-
-###
-# SSE - Stream Restaurants (Progressive Loading)
-# Note: This is a Server-Sent Events endpoint
-GET {{MCP.sse_HostAddress}}/sse/tools/get_restaurants_stream
-Accept: text/event-stream
-
-###
-# SSE - Stream Restaurant Analysis
-# Note: This is a Server-Sent Events endpoint
-GET {{MCP.sse_HostAddress}}/sse/tools/analyze_restaurants_stream?arguments={"type":"detailed"}
-Accept: text/event-stream
-
-###
-# SSE - Stream Restaurant Search
-# Note: This is a Server-Sent Events endpoint
-GET {{MCP.sse_HostAddress}}/sse/tools/search_restaurants_stream?arguments={"query":"italian"}
-Accept: text/event-stream
-
-###
-# SSE - Stream Tool with POST Request
-POST {{MCP.sse_HostAddress}}/sse/tools/analyze_restaurants_stream
+# STREAMING - Get Restaurants Stream (Auto-detection via tool name)
+POST {{MCP.sse_HostAddress}}/mcp
 Content-Type: application/json
-Accept: text/event-stream
 
 {
-  "tool": "analyze_restaurants_stream",
-  "arguments": {
-    "type": "comprehensive"
-  },
-  "requestId": "test-request-001"
+  "jsonrpc": "2.0",
+  "id": 10,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurants_stream"
+  }
 }
 
 ###
-# SSE - Stream Search with POST Request
-POST {{MCP.sse_HostAddress}}/sse/tools/search_restaurants_stream
+# STREAMING - Get Restaurants Stream (Explicit streaming parameter)
+POST {{MCP.sse_HostAddress}}/mcp
 Content-Type: application/json
-Accept: text/event-stream
 
 {
-  "tool": "search_restaurants_stream",
-  "arguments": {
-    "query": "mexican"
-  },
-  "requestId": "test-search-001"
+  "jsonrpc": "2.0",
+  "id": 11,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurants_stream",
+    "streaming": true
+  }
+}
+
+###
+# STREAMING - Analyze Restaurants Stream (With arguments)
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 12,
+  "method": "tools/call",
+  "params": {
+    "name": "analyze_restaurants_stream",
+    "arguments": {
+      "type": "comprehensive"
+    }
+  }
+}
+
+###
+# STREAMING - Search Restaurants Stream
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 13,
+  "method": "tools/call",
+  "params": {
+    "name": "search_restaurants_stream",
+    "arguments": {
+      "query": "mexican"
+    }
+  }
+}
+
+###
+# STREAMING - Force streaming with header (for regular tools)
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+Accept-Streaming: chunked-json
+
+{
+  "jsonrpc": "2.0",
+  "id": 14,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurants",
+    "streaming": true
+  }
+}
+
+###
+# STREAMING - Force streaming with X-MCP-Streaming header
+POST {{MCP.sse_HostAddress}}/mcp
+Content-Type: application/json
+X-MCP-Streaming: true
+
+{
+  "jsonrpc": "2.0",
+  "id": 15,
+  "method": "tools/call",
+  "params": {
+    "name": "analyze_restaurants_stream",
+    "arguments": {
+      "type": "detailed"
+    }
+  }
 }
 
 ###

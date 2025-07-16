@@ -5,34 +5,34 @@ namespace MCP.sse.Services;
 
 public class RestaurantService
 {
-    private readonly string dataFilePath;
-    private List<Restaurant> restaurants = new();
-    private Dictionary<string, int> visitCounts = new();
+    private readonly string _dataFilePath;
+    private readonly List<Restaurant> _restaurants = new();
+    private readonly Dictionary<string, int> _visitCounts = new();
 
     public RestaurantService()
     {
         // Store data in user's app data directory
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appDir = Path.Combine(appDataPath, "LunchTimeMCP_SSE");
+        var appDir = Path.Combine(appDataPath, "LunchTimeMCP_Streaming");
         Directory.CreateDirectory(appDir);
 
-        dataFilePath = Path.Combine(appDir, "restaurants.json");
+        _dataFilePath = Path.Combine(appDir, "restaurants.json");
         LoadData();
 
         // Initialize with trendy West Hollywood restaurants if empty
-        if (restaurants.Count == 0)
+        if (_restaurants.Count == 0)
         {
             InitializeWithTrendyRestaurants();
             SaveData();
         }
     }
 
-    public async Task<List<Restaurant>> GetRestaurantsAsync()
+    public Task<List<Restaurant>> GetRestaurantsAsync()
     {
-        return await Task.FromResult(restaurants.ToList());
+        return Task.FromResult(_restaurants.ToList());
     }
 
-    public async Task<Restaurant> AddRestaurantAsync(string name, string location, string foodType)
+    public Task<Restaurant> AddRestaurantAsync(string name, string location, string foodType)
     {
         var restaurant = new Restaurant
         {
@@ -43,38 +43,35 @@ public class RestaurantService
             DateAdded = DateTime.UtcNow
         };
 
-        restaurants.Add(restaurant);
+        _restaurants.Add(restaurant);
         SaveData();
 
-        return await Task.FromResult(restaurant);
+        return Task.FromResult(restaurant);
     }
 
-    public async Task<Restaurant?> PickRandomRestaurantAsync()
+    public Task<Restaurant?> PickRandomRestaurantAsync()
     {
-        if (restaurants.Count == 0)
-            return null;
+        if (_restaurants.Count == 0)
+            return Task.FromResult<Restaurant?>(null);
 
         var random = new Random();
-        var selectedRestaurant = restaurants[random.Next(restaurants.Count)];
+        var selectedRestaurant = _restaurants[random.Next(_restaurants.Count)];
 
         // Track the visit
-        if (visitCounts.ContainsKey(selectedRestaurant.Id))
-            visitCounts[selectedRestaurant.Id]++;
-        else
-            visitCounts[selectedRestaurant.Id] = 1;
+        _visitCounts[selectedRestaurant.Id] = _visitCounts.GetValueOrDefault(selectedRestaurant.Id, 0) + 1;
 
         SaveData();
 
-        return await Task.FromResult(selectedRestaurant);
+        return Task.FromResult<Restaurant?>(selectedRestaurant);
     }
 
-    public async Task<Dictionary<string, RestaurantVisitInfo>> GetVisitStatsAsync()
+    public Task<Dictionary<string, RestaurantVisitInfo>> GetVisitStatsAsync()
     {
         var stats = new Dictionary<string, RestaurantVisitInfo>();
 
-        foreach (var restaurant in restaurants)
+        foreach (var restaurant in _restaurants)
         {
-            var visitCount = visitCounts.GetValueOrDefault(restaurant.Id, 0);
+            var visitCount = _visitCounts.GetValueOrDefault(restaurant.Id, 0);
             stats[restaurant.Name] = new RestaurantVisitInfo
             {
                 Restaurant = restaurant,
@@ -83,7 +80,7 @@ public class RestaurantService
             };
         }
 
-        return await Task.FromResult(stats);
+        return Task.FromResult(stats);
     }
 
     public async Task<FormattedRestaurantStats> GetFormattedVisitStatsAsync()
@@ -98,9 +95,12 @@ public class RestaurantService
                 Location = stat.Restaurant.Location,
                 FoodType = stat.Restaurant.FoodType,
                 VisitCount = stat.VisitCount,
-                TimesEaten = stat.VisitCount == 0 ? "Never" :
-                            stat.VisitCount == 1 ? "Once" :
-                            $"{stat.VisitCount} times"
+                TimesEaten = stat.VisitCount switch
+                {
+                    0 => "Never",
+                    1 => "Once",
+                    _ => $"{stat.VisitCount} times"
+                }
             })
             .ToList();
 
@@ -115,18 +115,24 @@ public class RestaurantService
 
     private void LoadData()
     {
-        if (!File.Exists(dataFilePath))
+        if (!File.Exists(_dataFilePath))
             return;
 
         try
         {
-            var json = File.ReadAllText(dataFilePath);
+            var json = File.ReadAllText(_dataFilePath);
             var data = JsonSerializer.Deserialize(json, RestaurantJsonContext.Default.RestaurantData);
 
             if (data != null)
             {
-                restaurants = data.Restaurants ?? new List<Restaurant>();
-                visitCounts = data.VisitCounts ?? new Dictionary<string, int>();
+                _restaurants.Clear();
+                _restaurants.AddRange(data.Restaurants ?? []);
+                
+                _visitCounts.Clear();
+                foreach (var kvp in data.VisitCounts ?? new Dictionary<string, int>())
+                {
+                    _visitCounts[kvp.Key] = kvp.Value;
+                }
             }
         }
         catch (Exception ex)
@@ -141,12 +147,12 @@ public class RestaurantService
         {
             var data = new RestaurantData
             {
-                Restaurants = restaurants,
-                VisitCounts = visitCounts
+                Restaurants = _restaurants,
+                VisitCounts = _visitCounts
             };
 
             var json = JsonSerializer.Serialize(data, RestaurantJsonContext.Default.RestaurantData);
-            File.WriteAllText(dataFilePath, json);
+            File.WriteAllText(_dataFilePath, json);
         }
         catch (Exception ex)
         {
@@ -170,6 +176,6 @@ public class RestaurantService
             new() { Id = Guid.NewGuid().ToString(), Name = "Craig's", Location = "8826 Melrose Ave", FoodType = "American Contemporary", DateAdded = DateTime.UtcNow }
         };
 
-        restaurants.AddRange(trendyRestaurants);
+        _restaurants.AddRange(trendyRestaurants);
     }
 }

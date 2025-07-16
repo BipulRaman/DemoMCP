@@ -1,12 +1,13 @@
 using MCP.sse.Models;
 using MCP.sse.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Text;
 using System.Text.Json;
 
 namespace MCP.sse.Controllers;
 
 /// <summary>
-/// Pure MCP (Model Context Protocol) server implementation using JSON-RPC 2.0
+/// MCP (Model Context Protocol) server implementation with streaming support using JSON-RPC 2.0
 /// </summary>
 [ApiController]
 [Route("mcp")]
@@ -14,19 +15,22 @@ namespace MCP.sse.Controllers;
 public class McpServerController : ControllerBase
 {
     private readonly RestaurantService _restaurantService;
-    private readonly SseStreamingService _sseStreamingService;
+    private readonly StreamingService _streamingService;
     private readonly ILogger<McpServerController> _logger;
 
     public McpServerController(
         RestaurantService restaurantService,
-        SseStreamingService sseStreamingService,
+        StreamingService streamingService,
         ILogger<McpServerController> logger)
     {
         _restaurantService = restaurantService;
-        _sseStreamingService = sseStreamingService;
+        _streamingService = streamingService;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Main MCP protocol endpoint supporting both regular and streaming requests
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> HandleMcpRequest([FromBody] JsonRpcRequest request)
     {
@@ -45,12 +49,16 @@ public class McpServerController : ControllerBase
             {
                 "initialize" => (object)HandleInitialize(request),
                 "tools/list" => (object)HandleToolsList(request),
-                "tools/call" => (object)await HandleToolCall(request),
+                "tools/call" => await HandleToolCallWithStreaming(request),
                 "prompts/list" => (object)HandlePromptsList(request),
                 "prompts/get" => (object)HandlePromptsGet(request),
                 "resources/list" => (object)HandleResourcesList(request),
                 _ => (object)CreateErrorResponse(request.Id, -32601, $"Method not found: {request.Method}")
             };
+
+            // For streaming responses, return directly (they handle their own response)
+            if (response is IActionResult actionResult)
+                return actionResult;
 
             _logger.LogInformation("Sending response for method: {Method}", request.Method);
             return Ok(response);
@@ -85,18 +93,19 @@ public class McpServerController : ControllerBase
                     Tools = new McpToolsCapability { ListChanged = true, Streaming = true },
                     Resources = new McpResourcesCapability { Subscribe = true, ListChanged = true },
                     Prompts = new McpPromptsCapability { ListChanged = true },
-                    Streaming = new McpSseStreamingCapability
+                    Streaming = new McpStreamingServerCapability
                     {
                         Supported = true,
-                        Protocol = "sse",
-                        EventTypes = new[] { "tool-result", "restaurant-update", "error", "heartbeat" }
+                        Protocols = new[] { "chunked-json" },
+                        ToolStreaming = true,
+                        PromptStreaming = true
                     }
                 },
                 ServerInfo = new McpServerInfo
                 {
-                    Name = "LunchTime MCP SSE Server",
+                    Name = "LunchTime MCP Streaming Server",
                     Version = "1.0.0",
-                    Description = "Server-Sent Events based MCP server for lunch restaurant management"
+                    Description = "HTTP-based MCP server with chunked streaming for lunch restaurant management"
                 }
             };
 
@@ -127,6 +136,38 @@ public class McpServerController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// HTTP GET endpoint for streaming capabilities
+    /// </summary>
+    [HttpGet("capabilities")]
+    public IActionResult GetCapabilities()
+    {
+        return Ok(new
+        {
+            name = "LunchTime MCP Streaming Server",
+            version = "1.0.0",
+            protocol = "chunked-json",
+            streaming = new
+            {
+                supported = true,
+                protocols = new[] { "chunked-json" },
+                features = new[] { "chunked-transfer-encoding", "progressive-loading", "real-time-streaming" }
+            },
+            endpoints = new
+            {
+                mcp_jsonrpc = "/mcp (POST) - Main MCP protocol endpoint with streaming support",
+                mcp_tools = "/mcp/tools (GET) - List available tools",
+                mcp_capabilities = "/mcp/capabilities (GET) - This endpoint",
+                mcp_initialize = "/mcp/initialize (GET) - Server initialization info"
+            },
+            tools = new
+            {
+                streaming = new[] { "get_restaurants_stream", "analyze_restaurants_stream", "search_restaurants_stream" },
+                standard = new[] { "get_restaurants", "add_restaurant", "pick_random_restaurant", "get_visit_stats" }
+            }
+        });
+    }
+
     private JsonRpcResponse HandleInitialize(JsonRpcRequest request)
     {
         var result = new McpInitializeResult
@@ -137,18 +178,19 @@ public class McpServerController : ControllerBase
                 Tools = new McpToolsCapability { ListChanged = true, Streaming = true },
                 Resources = new McpResourcesCapability { Subscribe = true, ListChanged = true },
                 Prompts = new McpPromptsCapability { ListChanged = true },
-                Streaming = new McpSseStreamingCapability
+                Streaming = new McpStreamingServerCapability
                 {
                     Supported = true,
-                    Protocol = "sse",
-                    EventTypes = new[] { "tool-result", "restaurant-update", "error", "heartbeat" }
+                    Protocols = new[] { "chunked-json" },
+                    ToolStreaming = true,
+                    PromptStreaming = true
                 }
             },
             ServerInfo = new McpServerInfo
             {
-                Name = "LunchTime MCP SSE Server",
+                Name = "LunchTime MCP Streaming Server",
                 Version = "1.0.0",
-                Description = "Server-Sent Events based MCP server for lunch restaurant management"
+                Description = "HTTP-based MCP server with chunked streaming for lunch restaurant management"
             }
         };
 
@@ -162,7 +204,7 @@ public class McpServerController : ControllerBase
         return new JsonRpcResponse { Id = request.Id, Result = result };
     }
 
-    private async Task<JsonRpcResponse> HandleToolCall(JsonRpcRequest request)
+    private async Task<object> HandleToolCallWithStreaming(JsonRpcRequest request)
     {
         try
         {
@@ -172,7 +214,19 @@ public class McpServerController : ControllerBase
             if (toolCallParams == null)
                 return new JsonRpcResponse { Id = request.Id, Result = CreateErrorResult("Invalid tool call parameters") };
 
-            var resultText = await _sseStreamingService.ExecuteToolAsync(toolCallParams.Name, toolCallParams.Arguments);
+            // Check if this is a streaming request
+            bool shouldStream = toolCallParams.Streaming == true || 
+                               IsStreamingTool(toolCallParams.Name) ||
+                               Request.Headers.ContainsKey("Accept-Streaming") ||
+                               Request.Headers.ContainsKey("X-MCP-Streaming");
+
+            if (shouldStream)
+            {
+                return await HandleStreamingToolCall(toolCallParams, request.Id?.ToString() ?? Guid.NewGuid().ToString());
+            }
+
+            // Handle regular tool call
+            var resultText = await _streamingService.ExecuteToolAsync(toolCallParams.Name, toolCallParams.Arguments);
             
             var result = new McpToolCallResult
             {
@@ -183,7 +237,12 @@ public class McpServerController : ControllerBase
                 Metadata = new McpToolCallMetadata
                 {
                     Timestamp = DateTime.UtcNow,
-                    Streaming = true
+                    Streaming = new StreamingMetadata
+                    {
+                        ChunkNumber = 1,
+                        TotalChunks = 1,
+                        IsLast = true
+                    }
                 }
             };
 
@@ -194,6 +253,51 @@ public class McpServerController : ControllerBase
             _logger.LogError(ex, "Error in tool call");
             return new JsonRpcResponse { Id = request.Id, Result = CreateErrorResult($"Tool execution error: {ex.Message}") };
         }
+    }
+
+    private async Task<IActionResult> HandleStreamingToolCall(McpToolCallParams toolCallParams, string requestId)
+    {
+        try
+        {
+            _logger.LogInformation("Starting MCP streaming for {ToolName}, RequestId: {RequestId}", toolCallParams.Name, requestId);
+
+            // Set chunked transfer encoding headers
+            Response.Headers["Cache-Control"] = "no-cache";
+            Response.Headers["Connection"] = "keep-alive";
+            Response.Headers["Transfer-Encoding"] = "chunked";
+            Response.ContentType = "application/json";
+
+            var writer = new StreamWriter(Response.Body, Encoding.UTF8);
+
+            // Stream tool execution
+            await foreach (var chunk in _streamingService.StreamToolCallAsync(toolCallParams.Name, toolCallParams.Arguments, requestId, HttpContext.RequestAborted))
+            {
+                if (HttpContext.RequestAborted.IsCancellationRequested)
+                    break;
+
+                await writer.WriteLineAsync(chunk);
+                await writer.FlushAsync();
+            }
+
+            _logger.LogInformation("Completed MCP streaming for {ToolName}, RequestId: {RequestId}", toolCallParams.Name, requestId);
+            return new EmptyResult();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("MCP streaming cancelled for {ToolName}, RequestId: {RequestId}", toolCallParams.Name, requestId);
+            return new EmptyResult();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in MCP streaming for {ToolName}, RequestId: {RequestId}", toolCallParams.Name, requestId);
+            return StatusCode(500, new { error = "Streaming failed", message = ex.Message });
+        }
+    }
+
+    private bool IsStreamingTool(string toolName)
+    {
+        var streamingTools = new[] { "get_restaurants_stream", "analyze_restaurants_stream", "search_restaurants_stream" };
+        return streamingTools.Contains(toolName.ToLowerInvariant());
     }
 
     private JsonRpcResponse HandlePromptsList(JsonRpcRequest request)
@@ -319,14 +423,14 @@ public class McpServerController : ControllerBase
             new()
             {
                 Name = "get_restaurants_stream",
-                Description = "Stream all restaurants with progressive loading (SSE)",
+                Description = "Stream all restaurants with progressive loading (chunked JSON)",
                 InputSchema = new { type = "object", properties = new { } },
                 Streaming = true
             },
             new()
             {
                 Name = "analyze_restaurants_stream",
-                Description = "Stream real-time analysis of restaurant data (SSE)",
+                Description = "Stream real-time analysis of restaurant data (chunked JSON)",
                 InputSchema = new
                 {
                     type = "object",
@@ -340,7 +444,7 @@ public class McpServerController : ControllerBase
             new()
             {
                 Name = "search_restaurants_stream",
-                Description = "Stream search results as they're found (SSE)",
+                Description = "Stream search results as they're found (chunked JSON)",
                 InputSchema = new
                 {
                     type = "object",

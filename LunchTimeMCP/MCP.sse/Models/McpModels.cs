@@ -54,32 +54,38 @@ public class JsonRpcError
     public object? Data { get; set; }
 }
 
-// SSE Specific Models
-public class SseEvent
+// Streaming Support Models
+public class StreamingJsonRpcResponse
 {
-    [JsonPropertyName("event")]
-    public string Event { get; set; } = "";
-    
-    [JsonPropertyName("data")]
-    public object? Data { get; set; }
+    [JsonPropertyName("jsonrpc")]
+    public string JsonRpc { get; set; } = "2.0";
     
     [JsonPropertyName("id")]
-    public string? Id { get; set; }
+    public object? Id { get; set; }
+    
+    [JsonPropertyName("result")]
+    public object? Result { get; set; }
+    
+    [JsonPropertyName("error")]
+    public JsonRpcError? Error { get; set; }
+    
+    [JsonPropertyName("streaming")]
+    public StreamingInfo? Streaming { get; set; }
+}
+
+public class StreamingInfo
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "partial"; // "partial", "complete", "error"
+    
+    [JsonPropertyName("sequence")]
+    public int Sequence { get; set; }
+    
+    [JsonPropertyName("total")]
+    public int? Total { get; set; }
     
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-}
-
-public class SseToolRequest
-{
-    [JsonPropertyName("tool")]
-    public string Tool { get; set; } = "";
-    
-    [JsonPropertyName("arguments")]
-    public Dictionary<string, object>? Arguments { get; set; }
-    
-    [JsonPropertyName("requestId")]
-    public string RequestId { get; set; } = Guid.NewGuid().ToString();
 }
 
 // MCP Specific Models
@@ -118,8 +124,8 @@ public class McpStreamingCapability
     [JsonPropertyName("supported")]
     public bool Supported { get; set; } = true;
     
-    [JsonPropertyName("protocol")]
-    public string Protocol { get; set; } = "sse";
+    [JsonPropertyName("protocols")]
+    public string[] Protocols { get; set; } = { "chunked-json" };
 }
 
 public class McpClientInfo
@@ -155,7 +161,7 @@ public class McpServerCapabilities
     public McpPromptsCapability? Prompts { get; set; }
     
     [JsonPropertyName("streaming")]
-    public McpSseStreamingCapability? Streaming { get; set; }
+    public McpStreamingServerCapability? Streaming { get; set; }
 }
 
 public class McpToolsCapability
@@ -182,28 +188,31 @@ public class McpPromptsCapability
     public bool? ListChanged { get; set; }
 }
 
-public class McpSseStreamingCapability
+public class McpStreamingServerCapability
 {
     [JsonPropertyName("supported")]
     public bool Supported { get; set; } = true;
     
-    [JsonPropertyName("protocol")]
-    public string Protocol { get; set; } = "sse";
+    [JsonPropertyName("protocols")]
+    public string[] Protocols { get; set; } = { "chunked-json" };
     
-    [JsonPropertyName("eventTypes")]
-    public string[] EventTypes { get; set; } = { "tool-result", "restaurant-update", "error", "heartbeat" };
+    [JsonPropertyName("toolStreaming")]
+    public bool ToolStreaming { get; set; } = true;
+    
+    [JsonPropertyName("promptStreaming")]
+    public bool PromptStreaming { get; set; } = true;
 }
 
 public class McpServerInfo
 {
     [JsonPropertyName("name")]
-    public string Name { get; set; } = "LunchTime MCP SSE Server";
+    public string Name { get; set; } = "LunchTime MCP Streaming Server";
     
     [JsonPropertyName("version")]
     public string Version { get; set; } = "1.0.0";
     
     [JsonPropertyName("description")]
-    public string? Description { get; set; } = "Server-Sent Events based MCP server for lunch restaurant management";
+    public string? Description { get; set; } = "HTTP-based MCP server with chunked streaming for lunch restaurant management";
 }
 
 // Tools
@@ -245,6 +254,9 @@ public class McpToolCallParams
     
     [JsonPropertyName("arguments")]
     public Dictionary<string, object>? Arguments { get; set; }
+    
+    [JsonPropertyName("streaming")]
+    public bool? Streaming { get; set; }
 }
 
 public class McpToolCallResult
@@ -268,7 +280,19 @@ public class McpToolCallMetadata
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     
     [JsonPropertyName("streaming")]
-    public bool Streaming { get; set; } = true;
+    public StreamingMetadata? Streaming { get; set; }
+}
+
+public class StreamingMetadata
+{
+    [JsonPropertyName("chunkNumber")]
+    public int ChunkNumber { get; set; }
+    
+    [JsonPropertyName("totalChunks")]
+    public int? TotalChunks { get; set; }
+    
+    [JsonPropertyName("isLast")]
+    public bool IsLast { get; set; }
 }
 
 public class McpContent
@@ -346,6 +370,34 @@ public class McpPromptMessage
     
     [JsonPropertyName("content")]
     public McpContent Content { get; set; } = new();
+}
+
+// Streaming-specific response models
+public class StreamingToolCallRequest
+{
+    [JsonPropertyName("toolName")]
+    public string ToolName { get; set; } = "";
+    
+    [JsonPropertyName("arguments")]
+    public Dictionary<string, object>? Arguments { get; set; }
+    
+    [JsonPropertyName("requestId")]
+    public string RequestId { get; set; } = Guid.NewGuid().ToString();
+    
+    [JsonPropertyName("streaming")]
+    public StreamingOptions? Streaming { get; set; }
+}
+
+public class StreamingOptions
+{
+    [JsonPropertyName("protocol")]
+    public string Protocol { get; set; } = "chunked-json";
+    
+    [JsonPropertyName("chunkSize")]
+    public int? ChunkSize { get; set; }
+    
+    [JsonPropertyName("enableMetadata")]
+    public bool EnableMetadata { get; set; } = true;
 }
 
 // Resources Support Models
