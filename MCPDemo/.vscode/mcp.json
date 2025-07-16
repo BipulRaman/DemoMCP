@@ -13,7 +13,7 @@
         },
         "demo-mcp-http": {
             "type": "http",
-            "url": "http://localhost:5227/mcp"
+            "url": "http://localhost:7071"
         }
     }
 }
