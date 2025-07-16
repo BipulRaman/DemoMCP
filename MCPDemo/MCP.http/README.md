@@ -1,800 +1,358 @@
-﻿# MCP.http - Model Context Protocol Streaming Server
+# MCP.http - Restaurant Management HTTP Server
 
-> A production-ready HTTP-based Model Context Protocol (MCP) server implementation with advanced chunked JSON streaming capabilities for restaurant management.
+This is an HTTP-based Model Context Protocol (MCP) server that manages restaurant choices for lunch decisions. It follows the pattern established in the samples directory, providing a clean HTTP transport layer with JSON-RPC 2.0 protocol support.
 
-## 📋 Table of Contents
+## Features
 
-- [Introduction](#introduction)
-- [Architecture](#architecture)
-- [Data Flow](#data-flow)
-- [Key Components](#key-components)
-- [Local Development](#local-development)
-- [Testing](#testing)
-- [Deployment & CI/CD](#deployment--cicd)
-- [API Reference](#api-reference)
-- [Configuration](#configuration)
+The server provides several tools for managing and discovering restaurants:
 
-## 🌟 Introduction
+### Core Restaurant Management
+- **GetRestaurants**: Get a list of all available restaurants
+- **AddRestaurant**: Add a new restaurant with name, location, and food type
+- **PickRandomRestaurant**: Randomly select a restaurant for lunch
+- **GetVisitStatistics**: View statistics about restaurant visits
 
-The **MCP.http** server is a comprehensive implementation of the Model Context Protocol (MCP) specification with advanced streaming capabilities. Built on ASP.NET Core 9.0, it provides a robust foundation for AI assistant integrations with real-time data streaming support.
+### HTTP-Enhanced Features
+Following the pattern from the samples directory, this implementation includes:
 
-### Key Features
+- **GetRestaurantsStream**: Stream restaurant data with progressive loading
+- **AnalyzeRestaurantsStream**: Real-time analysis of restaurant data (cuisine, location, popularity, general)
+- **SearchRestaurantsStream**: Stream search results as they're found
+- **GetNearbyRestaurants**: Simulated external API integration for nearby restaurants
+- **GetRestaurantReviews**: Simulated external API for restaurant reviews
 
-- **🔄 Real-time Streaming**: HTTP chunked transfer encoding for progressive data delivery
-- **📡 MCP Protocol Compliance**: Full JSON-RPC 2.0 Model Context Protocol implementation
-- **🏪 Restaurant Management**: Complete CRUD operations with intelligent data handling
-- **⚡ High Performance**: Asynchronous operations with optimized data processing
-- **🔧 Configurable**: Environment-based configuration with development/production profiles
-- **🌐 CORS Support**: Cross-origin resource sharing for web client integration
-- **📊 Comprehensive Logging**: Structured logging with request/response tracking
+## Testing with VS Code and GitHub Copilot
 
-### Use Cases
-
-- AI assistant backend services
-- Real-time data streaming applications
-- Restaurant recommendation systems
-- MCP protocol testing and development
-- Educational MCP implementations
-
-## 🏗️ Architecture
-
-The MCP.http server follows a clean architecture pattern with clear separation of concerns:
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              MCP.http Server                                 │
-├──────────────────────────────────────────────────────────────────────────────┤
-│  ┌──────────────────────┐  ┌──────────────────────┐  ┌────────────────────┐  │
-│  │     Controllers      │  │      Services        │  │      Models        │  │
-│  │                      │  │                      │  │                    │  │
-│  │  McpServerController │◄─┤  RestaurantService   │  │  JsonRpc           │  │
-│  │                      │  │  StreamingService    │  │  Restaurant        │  │
-│  │                      │  │                      │  │  McpModels         │  │
-│  └──────────────────────┘  └──────────────────────┘  └────────────────────┘  │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                        ASP.NET Core Middleware Pipeline                      │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────────┐               │
-│  │   CORS     │→│   Auth     │→│  Routing   │→│ Controllers  │               │
-│  └────────────┘ └────────────┘ └────────────┘ └──────────────┘               │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                 Data Layer                                   │
-│  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │                JSON File Storage (AppData/Config)                       │ │
-│  │   %APPDATA%/LunchTimeMCP_Streaming/restaurants.json                     │ │
-│  └─────────────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Architectural Principles
-
-- **Single Responsibility**: Each component has a well-defined purpose
-- **Dependency Injection**: Loose coupling through DI container
-- **Separation of Concerns**: Clear boundaries between layers
-- **Asynchronous Processing**: Non-blocking operations throughout
-- **Extensibility**: Plugin-based architecture for new tools
-
-## 🔄 Data Flow
-
-### Standard Request Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant MC as McpController
-    participant RS as RestaurantService
-    participant FS as FileSystem
-
-    C->>MC: POST /mcp (JSON-RPC)
-    MC->>MC: Validate Request
-    MC->>RS: Process Tool Call
-    RS->>FS: Read/Write Data
-    FS-->>RS: Return Data
-    RS-->>MC: Return Result
-    MC-->>C: JSON-RPC Response
-```
-
-### Streaming Request Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant MC as McpController
-    participant SS as StreamingService
-    participant RS as RestaurantService
-
-    C->>MC: POST /mcp (Streaming Headers)
-    MC->>MC: Detect Streaming Mode
-    MC->>SS: Initialize Stream
-    SS->>RS: Get Data Source
-    
-    loop For Each Chunk
-        SS->>MC: Generate Chunk
-        MC->>C: Send Chunked Response
-    end
-    
-    SS->>MC: Complete Stream
-    MC->>C: Final Chunk + Close
-```
-
-### Tool Execution Pipeline
-
-1. **Request Validation**: JSON-RPC 2.0 schema validation
-2. **Method Routing**: Dispatch to appropriate handler
-3. **Parameter Extraction**: Type-safe parameter parsing
-4. **Tool Execution**: Business logic execution
-5. **Response Formatting**: MCP-compliant response generation
-6. **Streaming Detection**: Automatic streaming mode activation
-7. **Content Delivery**: Regular or chunked response delivery
-
-## 🔧 Key Components
-
-### Core Components
-
-#### 1. McpServerController
-- **Purpose**: Main API endpoint handling all MCP requests
-- **Responsibilities**:
-  - JSON-RPC 2.0 protocol implementation
-  - Request routing and validation
-  - Streaming mode detection and activation
-  - Error handling and response formatting
-
-#### 2. RestaurantService
-- **Purpose**: Business logic for restaurant management
-- **Features**:
-  - CRUD operations for restaurants
-  - Visit tracking and statistics
-  - Data persistence and retrieval
-  - Random restaurant selection algorithms
-
-#### 3. StreamingService
-- **Purpose**: Real-time data streaming capabilities
-- **Capabilities**:
-  - Chunked JSON response generation
-  - Progressive data loading
-  - Stream state management
-  - Metadata enrichment
-
-### Data Models
-
-#### JsonRpcRequest/Response
-- Complete JSON-RPC 2.0 implementation
-- Type-safe parameter handling
-- Error response standardization
-
-#### Restaurant Model
-```csharp
-public class Restaurant
-{
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string Location { get; set; }
-    public string FoodType { get; set; }
-    public DateTime DateAdded { get; set; }
-}
-```
-
-#### MCP Tool Definitions
-- Comprehensive tool metadata
-- Parameter validation schemas
-- Streaming capability indicators
-
-### Available Tools
-
-| Tool Name | Type | Description | Streaming |
-|-----------|------|-------------|-----------|
-| `get_restaurants` | Query | Retrieve all restaurants | ❌ |
-| `add_restaurant` | Action | Add new restaurant | ❌ |
-| `pick_random_restaurant` | Action | Random selection | ❌ |
-| `get_visit_stats` | Query | Visit statistics | ❌ |
-| `get_restaurants_stream` | Query | Progressive restaurant loading | ✅ |
-| `analyze_restaurants_stream` | Query | Real-time analysis | ✅ |
-| `search_restaurants_stream` | Query | Live search results | ✅ |
-
-## 💻 Local Development
+This section demonstrates how to test the MCP server directly within VS Code using MCP JSON configuration and GitHub Copilot integration.
 
 ### Prerequisites
 
-- **.NET 9.0 SDK** or later
-- **Visual Studio 2022** (17.8+) or **VS Code** with C# extension
-- **Git** for version control
-- **PowerShell** (Windows) or **Bash** (Linux/macOS)
+1. **VS Code** with GitHub Copilot extension installed
+2. **MCP for VS Code Extension** (if available)
+3. **REST Client Extension** for VS Code (alternative approach)
 
-### Setup Instructions
+### Method 1: Using MCP JSON Configuration
 
-#### 1. Clone Repository
-```powershell
-git clone <repository-url>
-cd MCPDemo/MCP.http
-```
+#### 1. Create MCP Configuration File
 
-#### 2. Restore Dependencies
-```powershell
-dotnet restore
-```
+Create a `.vscode/mcp-config.json` file in your workspace:
 
-#### 3. Configure Environment
-```powershell
-# Development settings are in appsettings.Development.json
-# Copy and modify as needed
-cp appsettings.json appsettings.Development.json
-```
-
-#### 4. Run the Application
-```powershell
-# Standard run
-dotnet run
-
-# Development with hot reload
-dotnet watch run
-
-# Specific environment
-dotnet run --environment Production
-```
-
-#### 5. Verify Installation
-```powershell
-# Health check
-curl http://localhost:5227/health
-
-# MCP capabilities
-curl -X POST http://localhost:5227/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05"}}'
-```
-
-### Development Tools
-
-#### Visual Studio Integration
-- **Launch Profiles**: Configured in `launchSettings.json`
-- **Debugging**: Full breakpoint and step-through support
-- **IntelliSense**: Complete code completion and documentation
-
-#### VS Code Integration
-- **REST Client**: Use `MCP.http.http` file for API testing
-- **C# Extension**: Syntax highlighting and debugging
-- **Tasks**: Pre-configured build and run tasks
-
-### File Structure
-```
-MCP.http/
-├── Controllers/
-│   └── McpServerController.cs     # Main API controller
-├── Models/
-│   ├── McpModels.cs              # MCP protocol models
-│   └── RestaurantModels.cs       # Domain models
-├── Services/
-│   ├── RestaurantService.cs      # Business logic
-│   └── StreamingService.cs       # Streaming functionality
-├── Properties/
-│   └── launchSettings.json       # Launch configurations
-├── appsettings.json              # Application configuration
-├── appsettings.Development.json  # Development overrides
-├── MCP.http.csproj              # Project file
-├── MCP.http.http                # REST client test file
-├── Program.cs                   # Application entry point
-└── README.md                    # This file
-```
-
-## 🧪 Testing
-
-### Manual Testing
-
-#### Using REST Client (VS Code)
-The project includes a comprehensive `MCP.http.http` file with pre-configured requests:
-
-```http
-### Health Check
-GET http://localhost:5227/health
-
-### Initialize MCP Connection
-POST http://localhost:5227/mcp
-Content-Type: application/json
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2024-11-05",
-    "capabilities": {}
-  }
-}
-
-### List Available Tools
-POST http://localhost:5227/mcp
-Content-Type: application/json
-
-{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "method": "tools/list"
-}
-```
-
-#### Using cURL
-
-##### Basic Tool Execution
-```powershell
-curl -X POST http://localhost:5227/mcp `
-  -H "Content-Type: application/json" `
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "tools/call",
-    "params": {
-      "name": "get_restaurants"
-    }
-  }'
-```
-
-##### Streaming Tool Execution
-```powershell
-curl -X POST http://localhost:5227/mcp `
-  -H "Content-Type: application/json" `
-  -H "Accept-Streaming: chunked-json" `
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 4,
-    "method": "tools/call",
-    "params": {
-      "name": "get_restaurants_stream",
-      "streaming": true
-    }
-  }'
-```
-
-### JavaScript Client Testing
-
-#### Fetch API with Streaming
-```javascript
-async function testMcpStreaming() {
-    const response = await fetch('http://localhost:5227/mcp', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept-Streaming': 'chunked-json'
-        },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: Date.now(),
-            method: 'tools/call',
-            params: {
-                name: 'analyze_restaurants_stream',
-                arguments: { type: 'detailed' }
-            }
-        })
-    });
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    
-    let buffer = '';
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const chunks = buffer.split('\n');
-        buffer = chunks.pop() || '';
-        
-        for (const chunk of chunks) {
-            if (chunk.trim()) {
-                const data = JSON.parse(chunk);
-                console.log('Stream chunk:', data);
-            }
-        }
-    }
-}
-```
-
-### Automated Testing
-
-#### Unit Tests Setup
-```powershell
-# Create test project
-dotnet new xunit -n MCP.http.Tests
-cd MCP.http.Tests
-dotnet add reference ../MCP.http.csproj
-dotnet add package Microsoft.AspNetCore.Mvc.Testing
-```
-
-#### Integration Tests
-```csharp
-[Test]
-public async Task GetRestaurants_ReturnsSuccessResponse()
-{
-    var request = new JsonRpcRequest
-    {
-        JsonRpc = "2.0",
-        Id = "test-1",
-        Method = "tools/call",
-        Params = new { name = "get_restaurants" }
-    };
-    
-    var response = await _client.PostAsJsonAsync("/mcp", request);
-    response.EnsureSuccessStatusCode();
-    
-    var content = await response.Content.ReadAsStringAsync();
-    var result = JsonSerializer.Deserialize<JsonRpcResponse>(content);
-    
-    Assert.Equal("2.0", result.JsonRpc);
-    Assert.Equal("test-1", result.Id);
-}
-```
-
-## 🚀 Deployment & CI/CD
-
-### Deployment Options
-
-#### 1. Azure App Service
-
-##### Deploy via Azure CLI
-```powershell
-# Login to Azure
-az login
-
-# Create resource group
-az group create --name MCP-RG --location "East US"
-
-# Create App Service plan
-az appservice plan create --name MCP-Plan --resource-group MCP-RG --sku B1
-
-# Create web app
-az webapp create --name mcp-streaming-server --resource-group MCP-RG --plan MCP-Plan --runtime "DOTNET:9.0"
-
-# Deploy from local git
-az webapp deployment source config-local-git --name mcp-streaming-server --resource-group MCP-RG
-
-# Configure app settings
-az webapp config appsettings set --name mcp-streaming-server --resource-group MCP-RG --settings ASPNETCORE_ENVIRONMENT=Production
-```
-
-##### Deploy via Visual Studio
-1. Right-click project → **Publish**
-2. Select **Azure** → **Azure App Service (Windows)**
-3. Configure subscription, resource group, and app service
-4. Click **Publish**
-
-#### 2. Docker Deployment
-
-##### Dockerfile
-```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-WORKDIR /app
-EXPOSE 8080
-
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-COPY ["MCP.http.csproj", "./"]
-RUN dotnet restore "MCP.http.csproj"
-COPY . .
-RUN dotnet build "MCP.http.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "MCP.http.csproj" -c Release -o /app/publish
-
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "MCP.http.dll"]
-```
-
-##### Build and Run
-```powershell
-# Build image
-docker build -t mcp-streaming-server .
-
-# Run container
-docker run -d -p 8080:8080 --name mcp-server mcp-streaming-server
-
-# Push to registry
-docker tag mcp-streaming-server your-registry/mcp-streaming-server:latest
-docker push your-registry/mcp-streaming-server:latest
-```
-
-#### 3. IIS Deployment
-
-##### Publish for IIS
-```powershell
-# Publish to folder
-dotnet publish -c Release -o ./publish
-
-# Create IIS application
-# - Copy publish folder to IIS wwwroot
-# - Create application in IIS Manager
-# - Configure .NET 9.0 runtime
-```
-
-### CI/CD Pipelines
-
-#### GitHub Actions
-
-##### .github/workflows/deploy.yml
-```yaml
-name: Deploy MCP Server
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '9.0.x'
-    
-    - name: Restore dependencies
-      run: dotnet restore MCP.http/MCP.http.csproj
-    
-    - name: Build
-      run: dotnet build MCP.http/MCP.http.csproj --no-restore
-    
-    - name: Test
-      run: dotnet test MCP.http.Tests/MCP.http.Tests.csproj --no-build --verbosity normal
-    
-    - name: Publish
-      run: dotnet publish MCP.http/MCP.http.csproj -c Release -o ./publish
-    
-    - name: Deploy to Azure
-      if: github.ref == 'refs/heads/main'
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: 'mcp-streaming-server'
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: './publish'
-```
-
-#### Azure DevOps
-
-##### azure-pipelines.yml
-```yaml
-trigger:
-- main
-
-pool:
-  vmImage: 'ubuntu-latest'
-
-variables:
-  buildConfiguration: 'Release'
-
-steps:
-- task: UseDotNet@2
-  displayName: 'Use .NET 9.0'
-  inputs:
-    packageType: 'sdk'
-    version: '9.0.x'
-
-- task: DotNetCoreCLI@2
-  displayName: 'Restore packages'
-  inputs:
-    command: 'restore'
-    projects: 'MCP.http/MCP.http.csproj'
-
-- task: DotNetCoreCLI@2
-  displayName: 'Build project'
-  inputs:
-    command: 'build'
-    projects: 'MCP.http/MCP.http.csproj'
-    arguments: '--configuration $(buildConfiguration)'
-
-- task: DotNetCoreCLI@2
-  displayName: 'Run tests'
-  inputs:
-    command: 'test'
-    projects: 'MCP.http.Tests/MCP.http.Tests.csproj'
-
-- task: DotNetCoreCLI@2
-  displayName: 'Publish application'
-  inputs:
-    command: 'publish'
-    projects: 'MCP.http/MCP.http.csproj'
-    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-
-- task: AzureWebApp@1
-  displayName: 'Deploy to Azure Web App'
-  inputs:
-    azureSubscription: 'Azure-Service-Connection'
-    appType: 'webApp'
-    appName: 'mcp-streaming-server'
-    package: '$(Build.ArtifactStagingDirectory)'
-```
-
-### Environment Configuration
-
-#### Production Settings
 ```json
 {
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
-  "ASPNETCORE_ENVIRONMENT": "Production"
-}
-```
-
-#### Health Monitoring
-```csharp
-// Add to Program.cs
-builder.Services.AddHealthChecks()
-    .AddCheck("restaurants", () => 
-        File.Exists(restaurantService.DataFilePath) 
-            ? HealthCheckResult.Healthy() 
-            : HealthCheckResult.Unhealthy());
-
-app.MapHealthChecks("/health");
-```
-
-## 📚 API Reference
-
-### MCP Protocol Endpoints
-
-#### Initialize Connection
-```http
-POST /mcp
-Content-Type: application/json
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2024-11-05",
-    "capabilities": {
-      "streaming": {
-        "supported": true,
-        "protocols": ["chunked-json"]
-      }
+  "mcpServers": {
+    "restaurant-server": {
+      "command": "dotnet",
+      "args": ["run", "--project", "MCP.http"],
+      "transport": "http",
+      "url": "http://localhost:7072/mcp",
+      "name": "Restaurant Management Server",
+      "description": "Local restaurant management MCP server for testing"
     }
   }
 }
 ```
 
-#### List Available Tools
+#### 2. VS Code Settings Configuration
+
+Add to your `.vscode/settings.json`:
+
+```json
+{
+  "mcp.servers": {
+    "restaurant-server": {
+      "transport": "http",
+      "url": "http://localhost:7072/mcp",
+      "autoStart": true
+    }
+  },
+  "github.copilot.enable": {
+    "*": true,
+    "mcp": true
+  }
+}
+```
+
+#### 3. Testing with GitHub Copilot Chat
+
+Once configured, you can test the MCP server through GitHub Copilot Chat:
+
+1. **Open Copilot Chat** (`Ctrl+Shift+I` or `Cmd+Shift+I`)
+2. **Use MCP Tools** through natural language:
+
+```
+@workspace Can you help me add a new restaurant called "Taco Bell" in location "Food Court" with food type "Mexican" using the restaurant server?
+```
+
+```
+@workspace Show me all available restaurants from the restaurant management server
+```
+
+```
+@workspace Pick a random restaurant for lunch today
+```
+
+#### 4. Advanced Copilot Integration
+
+GitHub Copilot can understand and interact with your MCP tools:
+
+```
+@workspace I'm looking for Italian restaurants. Can you:
+1. Show me current Italian restaurants
+2. If none exist, add "Mario's Pizza" as an Italian restaurant downtown
+3. Then pick between the Italian options
+```
+
+### Method 2: Using REST Client Extension
+
+#### 1. Install REST Client Extension
+
+Install the "REST Client" extension by Huachao Mao from the VS Code marketplace.
+
+#### 2. Create Test File
+
+Create a `test-mcp-server.http` file in your workspace:
+
 ```http
-POST /mcp
-Content-Type: application/json
+### Variables
+@baseUrl = http://localhost:7072
+@contentType = application/json
+
+### Health Check
+GET {{baseUrl}}/health
+
+### List Available Tools
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list"
+}
+
+### Add Restaurant - Pizza Palace
+POST {{baseUrl}}
+Content-Type: {{contentType}}
 
 {
   "jsonrpc": "2.0",
   "id": 2,
-  "method": "tools/list"
+  "method": "tools/call",
+  "params": {
+    "name": "AddRestaurant",
+    "arguments": {
+      "name": "Pizza Palace",
+      "location": "Downtown",
+      "foodType": "Italian"
+    }
+  }
 }
-```
 
-#### Execute Tool
-```http
-POST /mcp
-Content-Type: application/json
+### Get All Restaurants
+POST {{baseUrl}}
+Content-Type: {{contentType}}
 
 {
   "jsonrpc": "2.0",
   "id": 3,
   "method": "tools/call",
   "params": {
-    "name": "add_restaurant",
+    "name": "GetRestaurants",
+    "arguments": {}
+  }
+}
+
+### Pick Random Restaurant
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "method": "tools/call",
+  "params": {
+    "name": "PickRandomRestaurant",
+    "arguments": {}
+  }
+}
+
+### Get Visit Statistics
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tools/call",
+  "params": {
+    "name": "GetVisitStatistics",
+    "arguments": {}
+  }
+}
+
+### Test Streaming - Get Restaurants Stream
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "method": "tools/call",
+  "params": {
+    "name": "GetRestaurantsStream",
+    "arguments": {}
+  }
+}
+
+### Test External API - Get Nearby Restaurants
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "method": "tools/call",
+  "params": {
+    "name": "GetNearbyRestaurants",
     "arguments": {
-      "name": "Joe's Pizza",
-      "location": "123 Main St",
-      "foodType": "Italian"
+      "latitude": 40.7128,
+      "longitude": -74.0060,
+      "radius": 1000
     }
   }
 }
 ```
 
-### Streaming Responses
+#### 3. Interactive Testing
 
-#### Chunk Format
+1. Click "Send Request" above each HTTP request
+2. View responses in the right panel
+3. Use GitHub Copilot to generate additional test cases:
+
+```
+// Ask Copilot: "Generate more test cases for the restaurant MCP server"
+// Copilot will suggest additional HTTP requests
+```
+
+### Method 3: Copilot-Assisted Test Generation
+
+#### 1. Generate Test Data with Copilot
+
+Ask GitHub Copilot to help create test data:
+
+```
+// In VS Code, select this comment and ask Copilot:
+// "Generate 10 diverse restaurant test cases with different cuisines and locations"
+```
+
+#### 2. Copilot-Generated Test Script
+
+Create a `test-restaurants.js` file and let Copilot help:
+
+```javascript
+// Ask Copilot to generate a comprehensive test script for the MCP restaurant server
+// Include tests for: adding restaurants, listing, random selection, error handling
+
+const baseUrl = 'http://localhost:7072/mcp';
+const testRestaurants = [
+  // Copilot will generate test data here
+];
+
+async function runTests() {
+  // Copilot will generate test functions here
+}
+```
+
+### Method 4: Debugging with VS Code
+
+#### 1. Launch Configuration
+
+Add to `.vscode/launch.json`:
+
 ```json
 {
-  "jsonrpc": "2.0",
-  "id": "request-id",
-  "result": {
-    "content": [{
-      "type": "text",
-      "text": "Chunk content here..."
-    }],
-    "metadata": {
-      "timestamp": "2024-01-15T10:30:00Z",
-      "streaming": {
-        "chunkNumber": 1,
-        "totalChunks": 10,
-        "isLast": false
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug MCP Restaurant Server",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/MCP.http/bin/Debug/net9.0/MCP.http.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/MCP.http",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceFolder}/Views"
       }
     }
-  },
-  "streaming": {
-    "type": "partial",
-    "sequence": 1,
-    "total": 10,
-    "timestamp": "2024-01-15T10:30:00Z"
-  }
+  ]
 }
 ```
 
-### Error Responses
+#### 2. Debugging Workflow
 
-#### Standard Error Format
-```json
-{
-  "jsonrpc": "2.0",
-  "id": "request-id",
-  "error": {
-    "code": -32601,
-    "message": "Method not found",
-    "data": {
-      "method": "unknown_method",
-      "availableMethods": ["initialize", "tools/list", "tools/call"]
-    }
-  }
-}
+1. Set breakpoints in your MCP tools (`RestaurantTools.cs`)
+2. Start debugging (`F5`)
+3. Use REST Client or Copilot Chat to trigger requests
+4. Step through code execution
+
+### Method 5: Copilot Chat Integration Testing
+
+#### 1. Natural Language Testing
+
+Use Copilot Chat with natural language commands:
+
+```
+@workspace Test the restaurant server by:
+1. Adding 3 different restaurants
+2. Listing all restaurants
+3. Picking a random one
+4. Getting visit statistics
+5. Testing error cases
 ```
 
-## ⚙️ Configuration
+#### 2. Copilot-Assisted Debugging
 
-### Application Settings
+When issues occur, ask Copilot for help:
 
-#### appsettings.json
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning",
-      "MCP.http": "Debug"
-    }
-  },
-  "AllowedHosts": "*",
-  "Kestrel": {
-    "Endpoints": {
-      "Http": {
-        "Url": "http://localhost:5227"
-      }
-    }
-  }
-}
+```
+@workspace The restaurant server returned an error "Method not found". 
+Can you help me debug this? Here's the request I sent: [paste JSON]
 ```
 
-#### Environment Variables
-- `ASPNETCORE_ENVIRONMENT`: Development, Staging, Production
-- `ASPNETCORE_URLS`: Server binding URLs
-- `LOGGING__LOGLEVEL__DEFAULT`: Logging level override
+#### 3. Code Generation with Context
 
-### Data Storage
+Ask Copilot to generate additional tools:
 
-Restaurant data is persisted in JSON format:
-- **Windows**: `%APPDATA%\LunchTimeMCP_Streaming\restaurants.json`
-- **macOS/Linux**: `~/.config/LunchTimeMCP_Streaming/restaurants.json`
-
-### CORS Configuration
-
-The server is configured with permissive CORS for development:
-```csharp
-policy.AllowAnyOrigin()
-      .AllowAnyMethod()
-      .AllowAnyHeader()
-      .WithExposedHeaders("Cache-Control", "Connection", "Transfer-Encoding");
+```
+@workspace Based on the existing RestaurantTools pattern, 
+can you create a new tool called "GetRestaurantsByFoodType" 
+that filters restaurants by cuisine type?
 ```
 
-**Production**: Restrict origins to specific domains for security.
+### Best Practices for VS Code + Copilot Testing
 
----
+1. **Use Descriptive Comments**: Help Copilot understand your testing intent
+2. **Leverage Workspace Context**: Use `@workspace` to include project context
+3. **Iterative Testing**: Build tests incrementally with Copilot assistance
+4. **Document Results**: Use Copilot to help document test outcomes
+5. **Error Analysis**: Ask Copilot to help analyze and fix errors
 
-## 📞 Support & Contributing
+### Expected Benefits
 
-- **Issues**: Report bugs and feature requests via GitHub Issues
-- **Documentation**: Comprehensive API documentation available
-- **Contributing**: Follow standard Git workflow with pull requests
-- **License**: [Specify your license here]
+- **Faster Testing**: Natural language to JSON-RPC conversion
+- **Better Coverage**: Copilot suggests edge cases you might miss
+- **Documentation**: Copilot helps document test scenarios
+- **Debugging**: AI-assisted error analysis and resolution
+- **Integration**: Seamless workflow within VS Code environment
 
-Built with ❤️ using ASP.NET Core 9.0 and the Model Context Protocol specification.
+This approach combines the power of GitHub Copilot's AI assistance with VS Code's integrated development environment to create a comprehensive testing workflow for your MCP restaurant server.
+
+

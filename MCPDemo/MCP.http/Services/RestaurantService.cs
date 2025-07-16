@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MCP.http.Models;
+using Microsoft.Extensions.Logging;
 
 namespace MCP.http.Services;
 
@@ -8,18 +9,21 @@ public class RestaurantService
     private readonly string _dataFilePath;
     private readonly List<Restaurant> _restaurants = new();
     private readonly Dictionary<string, int> _visitCounts = new();
+    private readonly ILogger<RestaurantService>? _logger;
 
-    public RestaurantService()
+    public RestaurantService(ILogger<RestaurantService>? logger = null)
     {
+        _logger = logger;
+        
         // Store data in user's app data directory
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appDir = Path.Combine(appDataPath, "LunchTimeMCP_Streaming");
+        var appDir = Path.Combine(appDataPath, "MCP.http");
         Directory.CreateDirectory(appDir);
 
         _dataFilePath = Path.Combine(appDir, "restaurants.json");
         LoadData();
 
-        // Initialize with trendy West Hollywood restaurants if empty
+        // Initialize with trendy restaurants if empty
         if (_restaurants.Count == 0)
         {
             InitializeWithTrendyRestaurants();
@@ -46,23 +50,27 @@ public class RestaurantService
         _restaurants.Add(restaurant);
         SaveData();
 
+        _logger?.LogInformation("Added restaurant: {Name} at {Location}", name, location);
+
         return Task.FromResult(restaurant);
     }
 
-    public Task<Restaurant> PickRandomRestaurantAsync()
+    public Task<Restaurant?> PickRandomRestaurantAsync()
     {
         if (_restaurants.Count == 0)
-            return Task.FromResult<Restaurant>(null);
+            return Task.FromResult<Restaurant?>(null);
 
         var random = new Random();
         var selectedRestaurant = _restaurants[random.Next(_restaurants.Count)];
 
         // Track the visit
         _visitCounts[selectedRestaurant.Id] = _visitCounts.GetValueOrDefault(selectedRestaurant.Id, 0) + 1;
-
         SaveData();
 
-        return Task.FromResult(selectedRestaurant);
+        _logger?.LogInformation("Selected random restaurant: {Name} (Visit #{Count})", 
+            selectedRestaurant.Name, _visitCounts[selectedRestaurant.Id]);
+
+        return Task.FromResult<Restaurant?>(selectedRestaurant);
     }
 
     public Task<Dictionary<string, RestaurantVisitInfo>> GetVisitStatsAsync()
@@ -121,23 +129,25 @@ public class RestaurantService
         try
         {
             var json = File.ReadAllText(_dataFilePath);
-            var data = JsonSerializer.Deserialize(json, RestaurantJsonContext.Default.RestaurantData);
+            var data = JsonSerializer.Deserialize<RestaurantData>(json, RestaurantContext.Default.RestaurantData);
 
             if (data != null)
             {
                 _restaurants.Clear();
                 _restaurants.AddRange(data.Restaurants ?? []);
-                
                 _visitCounts.Clear();
-                foreach (var kvp in data.VisitCounts ?? new Dictionary<string, int>())
+                foreach (var (key, value) in data.VisitCounts ?? new Dictionary<string, int>())
                 {
-                    _visitCounts[kvp.Key] = kvp.Value;
+                    _visitCounts[key] = value;
                 }
+                
+                _logger?.LogInformation("Loaded {Count} restaurants from {Path}", 
+                    _restaurants.Count, _dataFilePath);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading data: {ex.Message}");
+            _logger?.LogError(ex, "Error loading data from {Path}", _dataFilePath);
         }
     }
 
@@ -151,12 +161,14 @@ public class RestaurantService
                 VisitCounts = _visitCounts
             };
 
-            var json = JsonSerializer.Serialize(data, RestaurantJsonContext.Default.RestaurantData);
+            var json = JsonSerializer.Serialize(data, RestaurantContext.Default.RestaurantData);
             File.WriteAllText(_dataFilePath, json);
+            
+            _logger?.LogDebug("Saved restaurant data to {Path}", _dataFilePath);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving data: {ex.Message}");
+            _logger?.LogError(ex, "Error saving data to {Path}", _dataFilePath);
         }
     }
 
@@ -177,5 +189,7 @@ public class RestaurantService
         };
 
         _restaurants.AddRange(trendyRestaurants);
+        
+        _logger?.LogInformation("Initialized with {Count} trendy Los Angeles restaurants", trendyRestaurants.Count);
     }
 }

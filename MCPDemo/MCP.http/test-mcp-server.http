@@ -1,0 +1,465 @@
+### MCP Restaurant Server Testing
+### This file contains test requests for the MCP Restaurant Management Server
+### Use with VS Code REST Client extension for interactive testing
+###
+### NOTE: Streaming endpoints (those ending with "Stream") require the 
+### "Accept: {{accept}}" header for Server-Sent Events (SSE)
+
+### Variables
+@baseUrl = http://localhost:7071
+@contentType = application/json
+@accept = application/json, text/event-stream
+
+### Server Info - Get server capabilities
+GET {{baseUrl}}
+
+###
+
+### List Available Tools - Discover what tools are available
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list"
+}
+
+###
+
+### Add Restaurant - Pizza Palace (Italian)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "add_restaurant",
+    "arguments": {
+      "name": "Pizza Palace",
+      "location": "Downtown",
+      "foodType": "Italian"
+    }
+  }
+}
+
+###
+
+### Add Restaurant - Taco Bell (Mexican)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tools/call",
+  "params": {
+    "name": "add_restaurant",
+    "arguments": {
+      "name": "Taco Bell",
+      "location": "Food Court",
+      "foodType": "Mexican"
+    }
+  }
+}
+
+###
+
+### Get All Restaurants - List all added restaurants
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurants",
+    "arguments": {}
+  }
+}
+
+###
+
+### Pick Random Restaurant - Let the system choose for lunch
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "method": "tools/call",
+  "params": {
+    "name": "pick_random_restaurant",
+    "arguments": {}
+  }
+}
+
+###
+
+### Get Visit Statistics - Check restaurant usage stats
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 8,
+  "method": "tools/call",
+  "params": {
+    "name": "get_visit_statistics",
+    "arguments": {}
+  }
+}
+
+###
+
+### Test Streaming - Get Restaurants Stream (Progressive Loading)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 9,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurants_stream",
+    "arguments": {}
+  }
+}
+
+###
+
+### Analyze Restaurants Stream - Real-time analysis by cuisine
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 10,
+  "method": "tools/call",
+  "params": {
+    "name": "analyze_restaurants_stream",
+    "arguments": {
+      "type": "cuisine"
+    }
+  }
+}
+
+###
+
+### Analyze Restaurants Stream - Real-time analysis by location
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 11,
+  "method": "tools/call",
+  "params": {
+    "name": "analyze_restaurants_stream",
+    "arguments": {
+      "type": "location"
+    }
+  }
+}
+
+###
+
+### Analyze Restaurants Stream - Real-time analysis (general)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 12,
+  "method": "tools/call",
+  "params": {
+    "name": "analyze_restaurants_stream",
+    "arguments": {
+      "type": "general"
+    }
+  }
+}
+
+###
+
+### Analyze Restaurants Stream - Real-time analysis by popularity
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 13,
+  "method": "tools/call",
+  "params": {
+    "name": "analyze_restaurants_stream",
+    "arguments": {
+      "type": "popularity"
+    }
+  }
+}
+
+###
+
+### Search Restaurants Stream - Search for "Pizza"
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 14,
+  "method": "tools/call",
+  "params": {
+    "name": "search_restaurants_stream",
+    "arguments": {
+      "query": "Pizza"
+    }
+  }
+}
+
+###
+
+### Search Restaurants Stream - Search for "Downtown"
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 15,
+  "method": "tools/call",
+  "params": {
+    "name": "search_restaurants_stream",
+    "arguments": {
+      "query": "Downtown"
+    }
+  }
+}
+
+###
+
+### Get Nearby Restaurants - Simulated external API (NYC coordinates)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 16,
+  "method": "tools/call",
+  "params": {
+    "name": "get_nearby_restaurants",
+    "arguments": {
+      "latitude": 40.7128,
+      "longitude": -74.0060,
+      "radiusMiles": 1000
+    }
+  }
+}
+
+###
+
+### Get Nearby Restaurants - Different location (LA coordinates)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 17,
+  "method": "tools/call",
+  "params": {
+    "name": "get_nearby_restaurants",
+    "arguments": {
+      "latitude": 34.0522,
+      "longitude": -118.2437,
+      "radiusMiles": 500
+    }
+  }
+}
+
+###
+
+### Get Restaurant Reviews - Pizza Palace
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 18,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurant_reviews",
+    "arguments": {
+      "restaurantName": "Pizza Palace"
+    }
+  }
+}
+
+###
+
+### Get Restaurant Reviews - Burger King
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 19,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurant_reviews",
+    "arguments": {
+      "restaurantName": "Burger King"
+    }
+  }
+}
+
+###
+
+### Error Test - Invalid Tool Name
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 20,
+  "method": "tools/call",
+  "params": {
+    "name": "NonExistentTool",
+    "arguments": {}
+  }
+}
+
+###
+
+### Error Test - Invalid Method
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 21,
+  "method": "invalid/method"
+}
+
+###
+
+### Error Test - Missing Required Arguments (name only)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 22,
+  "method": "tools/call",
+  "params": {
+    "name": "add_restaurant",
+    "arguments": {
+      "name": "Incomplete Restaurant"
+    }
+  }
+}
+
+###
+
+### Performance Test - Multiple Random Picks (1)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 23,
+  "method": "tools/call",
+  "params": {
+    "name": "pick_random_restaurant",
+    "arguments": {}
+  }
+}
+
+###
+
+### Performance Test - Multiple Random Picks (2)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 24,
+  "method": "tools/call",
+  "params": {
+    "name": "pick_random_restaurant",
+    "arguments": {}
+  }
+}
+
+###
+
+### Performance Test - Multiple Random Picks (3)
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 25,
+  "method": "tools/call",
+  "params": {
+    "name": "pick_random_restaurant",
+    "arguments": {}
+  }
+}
+
+###
+
+### Cleanup Test - Get final statistics
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 26,
+  "method": "tools/call",
+  "params": {
+    "name": "get_visit_statistics",
+    "arguments": {}
+  }
+}
+
+###
+
+### Final Verification - List all restaurants
+POST {{baseUrl}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "jsonrpc": "2.0",
+  "id": 27,
+  "method": "tools/call",
+  "params": {
+    "name": "get_restaurants",
+    "arguments": {}
+  }
+}
