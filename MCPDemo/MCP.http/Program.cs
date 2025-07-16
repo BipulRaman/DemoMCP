@@ -57,10 +57,26 @@ var app = builder.Build();
 // Enable CORS
 app.UseCors();
 
-// Add more detailed logging for troubleshooting
+// Handle MCP header requirements automatically
 app.Use(async (context, next) =>
 {
     Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
+    
+    // For MCP requests, automatically fix missing Accept headers
+    if (context.Request.Path == "/" && context.Request.Method == "POST")
+    {
+        var acceptHeader = context.Request.Headers.Accept.ToString();
+        
+        // If Accept header is missing or doesn't include required types, fix it
+        if (string.IsNullOrEmpty(acceptHeader) || 
+            (!acceptHeader.Contains("application/json") || !acceptHeader.Contains("text/event-stream")))
+        {
+            // Set the correct Accept header
+            context.Request.Headers["Accept"] = "application/json, text/event-stream";
+            Console.WriteLine("Auto-corrected Accept header for MCP compatibility");
+        }
+    }
+    
     await next();
     Console.WriteLine($"Response: {context.Response.StatusCode}");
 });
