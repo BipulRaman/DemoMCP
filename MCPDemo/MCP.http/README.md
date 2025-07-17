@@ -8,6 +8,7 @@
 - [Architecture](#️-architecture)
 - [Data Flow](#-data-flow)
 - [Running the Server](#running-the-server)
+- [Testing the Server](#testing-methods)
 - [Integration with AI Assistants](#integration-with-ai-assistants)
 
 ## 🌟 Introduction
@@ -84,19 +85,18 @@ dotnet run
 
 The server will start and listen for HTTP requests on `http://localhost:7071`.
 
-### Testing with MCP Inspector
-```bash
-# Install MCP Inspector
-npm install -g @modelcontextprotocol/inspector
+### Testing Methods
 
-# Run MCP Inspector and configure with HTTP URL
-npx @modelcontextprotocol/inspector
-# Then configure with URL: http://localhost:7071
-```
+#### Method 1: Using MCP Inspector
 
-## Integration with AI Assistants
+0. **Install MCP Inspector**: `npm install -g @modelcontextprotocol/inspector`
+1. **Run MCP Inspector**: `npx @modelcontextprotocol/inspector`
+2. **Configure URL**: Set URL as `http://localhost:7071`
+3. **Set Proxy Session Token**: Use token from console output
+4. **Test Tools**: Start with Tools >> List Tools to see available tools
 
-### VS Code with GitHub Copilot
+
+#### Method 2: VS Code with GitHub Copilot
 
 Create a `.vscode/mcp.json` file in your workspace:
 
@@ -122,25 +122,7 @@ Create a `.vscode/mcp.json` file in your workspace:
 Show me all available restaurants from the restaurant management server
 ```
 
-**Advanced Copilot Integration:**
-
-```
-@workspace I'm looking for Italian restaurants. Can you:
-1. Show me current Italian restaurants
-2. If none exist, add "Mario's Pizza" as an Italian restaurant downtown
-3. Then pick between the Italian options
-```
-
-### Alternative Testing Methods
-
-#### Method 1: Using MCP Inspector
-
-1. **Run MCP Inspector**: `npx @modelcontextprotocol/inspector`
-2. **Configure URL**: Set URL as `http://localhost:7071`
-3. **Set Proxy Session Token**: Use token from console output
-4. **Test Tools**: Start with Tools >> List Tools to see available tools
-
-#### Method 2: Using REST Client Extension
+#### Method 3: Using REST Client Extension
 
 1. **Install REST Client Extension**: Install "REST Client" by Huachao Mao from VS Code marketplace
 2. **Use Test File**: Refer to [test-mcp-server.http](test-mcp-server.http) for example requests

@@ -8,6 +8,7 @@
 - [Architecture](#️-architecture)
 - [Data Flow](#-data-flow)
 - [Running the Server](#running-the-server)
+- [Testing the Server](#testing-methods)
 - [Integration with AI Assistants](#integration-with-ai-assistants)
 
 ## 🌟 Introduction
@@ -78,7 +79,9 @@ dotnet run
 
 The server will start and wait for MCP protocol messages via stdin/stdout.
 
-### Testing with MCP Inspector
+## Testing Methods
+
+### Method 1: Using MCP Inspector
 ```bash
 # Install MCP Inspector
 npm install -g @modelcontextprotocol/inspector
@@ -87,9 +90,7 @@ npm install -g @modelcontextprotocol/inspector
 npx @modelcontextprotocol/inspector dotnet run
 ```
 
-## Integration with AI Assistants
-
-### VS Code with GitHub Copilot
+### Method 2: Using VS Code with GitHub Copilot
 
 Create a `.vscode/mcp.json` file in your workspace:
 
