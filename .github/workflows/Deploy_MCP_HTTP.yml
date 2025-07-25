@@ -44,6 +44,6 @@ jobs:
     - name: Deploy to Azure Functions
       uses: azure/webapps-deploy@v2
       with:
-        app-name: bipulremotemcp
+        app-name: bipulmcp
         publish-profile: ${{ secrets.REMOTE_MCP_PUBLISH_PROFILE }} # You need to set this secret in your repository settings
         package: ./publish
