@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "MCP.Remote": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7234",
+      "launchBrowser": false
+    }
+  }
+}
