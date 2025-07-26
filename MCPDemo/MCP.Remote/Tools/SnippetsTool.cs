@@ -16,7 +16,17 @@ public class SnippetsTool(ILogger<SnippetsTool> logger)
         [BlobInput(BlobPath)] string snippetContent
     )
     {
-        return snippetContent;
+        try
+        {
+            return snippetContent;
+        }
+        catch (Exception ex)
+        {
+            var snippetName = context.Arguments?.GetValueOrDefault(SnippetNamePropertyName)?.ToString() ?? "unknown";
+            logger.LogError(ex, "{Class}_{Method} : Failed to retrieve snippet '{SnippetName}': {ErrorMessage}", 
+                nameof(SnippetsTool), nameof(GetSnippet), snippetName, ex.Message);
+            throw;
+        }
     }
 
     [Function(nameof(SaveSnippet))]
@@ -30,6 +40,15 @@ public class SnippetsTool(ILogger<SnippetsTool> logger)
             string snippet
     )
     {
-        return snippet;
+        try
+        {
+            return snippet;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{Class}_{Method} : Failed to save snippet '{SnippetName}': {ErrorMessage}", 
+                nameof(SnippetsTool), nameof(SaveSnippet), name, ex.Message);
+            throw;
+        }
     }
 }

@@ -12,7 +12,7 @@ public class HelloTool(ILogger<HelloTool> logger)
         [McpToolTrigger(HelloToolName, HelloToolDescription)] ToolInvocationContext context
     )
     {
-        logger.LogInformation("Saying hello");
+        logger.LogInformation("{Class}_{Method} : Saying hello", nameof(HelloTool), nameof(SayHello));
         return "Hello I am MCP Tool!";
     }
 }

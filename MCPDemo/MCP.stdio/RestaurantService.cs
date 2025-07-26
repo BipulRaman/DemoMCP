@@ -131,7 +131,8 @@ public class RestaurantService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading data: {ex.Message}");
+            // Note: Add ILogger<RestaurantService> dependency to constructor when available
+            Console.WriteLine($"{nameof(RestaurantService)}_{nameof(LoadData)} : Failed to load data: {ex.Message}");
         }
     }
 
@@ -150,7 +151,8 @@ public class RestaurantService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving data: {ex.Message}");
+            // Note: Add ILogger<RestaurantService> dependency to constructor when available
+            Console.WriteLine($"{nameof(RestaurantService)}_{nameof(SaveData)} : Failed to save data: {ex.Message}");
         }
     }
 
