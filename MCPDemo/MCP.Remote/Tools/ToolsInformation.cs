@@ -1,4 +1,4 @@
-namespace MCP.Remote;
+namespace MCP.Remote.Tools;
 
 internal sealed class ToolsInformation
 {

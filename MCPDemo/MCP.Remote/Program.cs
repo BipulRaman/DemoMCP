@@ -1,6 +1,6 @@
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Hosting;
-using static MCP.Remote.ToolsInformation;
+using static MCP.Remote.Tools.ToolsInformation;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 

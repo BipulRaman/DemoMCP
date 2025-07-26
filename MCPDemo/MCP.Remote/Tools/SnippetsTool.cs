@@ -1,9 +1,9 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
-using static MCP.Remote.ToolsInformation;
+using static MCP.Remote.Tools.ToolsInformation;
 
-namespace MCP.Remote;
+namespace MCP.Remote.Tools;
 
 public class SnippetsTool(ILogger<SnippetsTool> logger)
 {
