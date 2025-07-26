@@ -1,9 +1,10 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
-using static MCP.Remote.Tools.ToolsInformation;
+using System.Diagnostics;
+using static MCP.Remote.ToolsInformation;
 
-namespace MCP.Remote.Tools;
+namespace MCP.Remote;
 
 public class HelloTool(ILogger<HelloTool> logger)
 {
@@ -12,18 +13,22 @@ public class HelloTool(ILogger<HelloTool> logger)
         [McpToolTrigger(HelloToolName, HelloToolDescription)] ToolInvocationContext context
     )
     {
-        logger.LogInformation("{Class}_{Method} : Starting operation", nameof(HelloTool), nameof(SayHello));
+        var stopwatch = Stopwatch.StartNew();
+        
+        logger.LogToolOperationStart(nameof(HelloTool), nameof(SayHello));
         
         try
         {
             const string message = "Hello I am MCP Tool!";
-            logger.LogInformation("{Class}_{Method} : Generated hello message: {Message}", nameof(HelloTool), nameof(SayHello), message);
+            logger.LogInformation("Generated hello message: {Message}", message);
+            
+            logger.LogToolOperationComplete(nameof(HelloTool), nameof(SayHello), stopwatch.ElapsedMilliseconds);
             
             return message;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{Class}_{Method} : Failed to generate hello message: {ErrorMessage}", nameof(HelloTool), nameof(SayHello), ex.Message);
+            logger.LogToolOperationError(nameof(HelloTool), nameof(SayHello), ex);
             throw;
         }
     }

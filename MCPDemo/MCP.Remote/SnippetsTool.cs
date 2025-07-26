@@ -1,9 +1,10 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
-using static MCP.Remote.Tools.ToolsInformation;
+using System.Diagnostics;
+using static MCP.Remote.ToolsInformation;
 
-namespace MCP.Remote.Tools;
+namespace MCP.Remote;
 
 public class SnippetsTool(ILogger<SnippetsTool> logger)
 {
@@ -16,26 +17,29 @@ public class SnippetsTool(ILogger<SnippetsTool> logger)
         [BlobInput(BlobPath)] string snippetContent
     )
     {
-        var snippetName = context.Arguments?[SnippetNamePropertyName]?.ToString();
+        var stopwatch = Stopwatch.StartNew();
+        var snippetName = context.Arguments[SnippetNamePropertyName]?.ToString();
         
-        logger.LogInformation("{Class}_{Method} : Starting operation for snippet '{SnippetName}'", nameof(SnippetsTool), nameof(GetSnippet), snippetName);
+        logger.LogToolOperationStart(nameof(SnippetsTool), nameof(GetSnippet), new { snippetName });
         
         try
         {
             if (string.IsNullOrEmpty(snippetContent))
             {
-                logger.LogWarning("{Class}_{Method} : Snippet not found: '{SnippetName}'", nameof(SnippetsTool), nameof(GetSnippet), snippetName);
+                logger.LogWarning("Snippet not found: {SnippetName}", snippetName);
                 var notFoundMessage = $"Snippet '{snippetName}' not found.";
+                logger.LogToolOperationComplete(nameof(SnippetsTool), nameof(GetSnippet), stopwatch.ElapsedMilliseconds);
                 return notFoundMessage;
             }
             
-            logger.LogInformation("{Class}_{Method} : Successfully retrieved snippet '{SnippetName}' with {ContentLength} characters", nameof(SnippetsTool), nameof(GetSnippet), snippetName, snippetContent.Length);
+            logger.LogBlobOperation("Read", BlobPath.Replace("{mcptoolargs." + SnippetNamePropertyName + "}", snippetName ?? "unknown"), snippetContent.Length);
+            logger.LogToolOperationComplete(nameof(SnippetsTool), nameof(GetSnippet), stopwatch.ElapsedMilliseconds);
             
             return snippetContent;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{Class}_{Method} : Failed to retrieve snippet '{SnippetName}': {ErrorMessage}", nameof(SnippetsTool), nameof(GetSnippet), snippetName, ex.Message);
+            logger.LogToolOperationError(nameof(SnippetsTool), nameof(GetSnippet), ex);
             throw;
         }
     }
@@ -51,28 +55,32 @@ public class SnippetsTool(ILogger<SnippetsTool> logger)
             string snippet
     )
     {
-        logger.LogInformation("{Class}_{Method} : Starting operation to save snippet '{SnippetName}' with {ContentLength} characters", nameof(SnippetsTool), nameof(SaveSnippet), name, snippet?.Length ?? 0);
+        var stopwatch = Stopwatch.StartNew();
+        
+        logger.LogToolOperationStart(nameof(SnippetsTool), nameof(SaveSnippet), 
+            new { name, contentLength = snippet?.Length ?? 0 });
         
         try
         {
             if (string.IsNullOrEmpty(name))
             {
-                logger.LogError("{Class}_{Method} : Attempted to save snippet with empty name", nameof(SnippetsTool), nameof(SaveSnippet));
+                logger.LogError("Attempted to save snippet with empty name");
                 throw new ArgumentException("Snippet name cannot be empty", nameof(name));
             }
             
             if (string.IsNullOrEmpty(snippet))
             {
-                logger.LogWarning("{Class}_{Method} : Saving empty snippet '{SnippetName}'", nameof(SnippetsTool), nameof(SaveSnippet), name);
+                logger.LogWarning("Saving empty snippet: {SnippetName}", name);
             }
             
-            logger.LogInformation("{Class}_{Method} : Successfully saved snippet '{SnippetName}'", nameof(SnippetsTool), nameof(SaveSnippet), name);
+            logger.LogBlobOperation("Write", BlobPath.Replace("{mcptoolargs." + SnippetNamePropertyName + "}", name), snippet?.Length ?? 0);
+            logger.LogToolOperationComplete(nameof(SnippetsTool), nameof(SaveSnippet), stopwatch.ElapsedMilliseconds);
             
-            return snippet ?? string.Empty;
+            return snippet;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{Class}_{Method} : Failed to save snippet '{SnippetName}': {ErrorMessage}", nameof(SnippetsTool), nameof(SaveSnippet), name, ex.Message);
+            logger.LogToolOperationError(nameof(SnippetsTool), nameof(SaveSnippet), ex);
             throw;
         }
     }
