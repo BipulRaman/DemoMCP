@@ -29,7 +29,8 @@ public class AzBlobService : IAzBlobService
 
             if (!await blobClient.ExistsAsync(cancellationToken))
             {
-                _logger.LogWarning("Blob '{BlobName}' not found in container '{ContainerName}'", blobName, containerName);
+                _logger.LogWarning("{Class}_{Method} : Blob '{BlobName}' not found in container '{ContainerName}'", 
+                    nameof(AzBlobService), nameof(GetBlobAsStringAsync), blobName, containerName);
                 return string.Empty;
             }
 
@@ -38,8 +39,8 @@ public class AzBlobService : IAzBlobService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get blob '{BlobName}' from container '{ContainerName}': {ErrorMessage}", 
-                blobName, containerName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to get blob '{BlobName}' from container '{ContainerName}': {ErrorMessage}", 
+                nameof(AzBlobService), nameof(GetBlobAsStringAsync), blobName, containerName, ex.Message);
             throw;
         }
     }
@@ -53,7 +54,8 @@ public class AzBlobService : IAzBlobService
 
             if (!await blobClient.ExistsAsync(cancellationToken))
             {
-                _logger.LogWarning("Blob '{BlobName}' not found in container '{ContainerName}'", blobName, containerName);
+                _logger.LogWarning("{Class}_{Method} : Blob '{BlobName}' not found in container '{ContainerName}'", 
+                    nameof(AzBlobService), nameof(GetBlobAsStreamAsync), blobName, containerName);
                 return Stream.Null;
             }
 
@@ -62,8 +64,8 @@ public class AzBlobService : IAzBlobService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get blob stream '{BlobName}' from container '{ContainerName}': {ErrorMessage}", 
-                blobName, containerName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to get blob stream '{BlobName}' from container '{ContainerName}': {ErrorMessage}", 
+                nameof(AzBlobService), nameof(GetBlobAsStreamAsync), blobName, containerName, ex.Message);
             throw;
         }
     }
@@ -81,12 +83,13 @@ public class AzBlobService : IAzBlobService
             using var stream = new MemoryStream(contentBytes);
             await blobClient.UploadAsync(stream, overwrite: true, cancellationToken);
 
-            _logger.LogInformation("Successfully saved blob '{BlobName}' to container '{ContainerName}'", blobName, containerName);
+            _logger.LogInformation("{Class}_{Method} : Successfully saved blob '{BlobName}' to container '{ContainerName}'", 
+                nameof(AzBlobService), nameof(SaveBlobFromStringAsync), blobName, containerName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save blob '{BlobName}' to container '{ContainerName}': {ErrorMessage}", 
-                blobName, containerName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to save blob '{BlobName}' to container '{ContainerName}': {ErrorMessage}", 
+                nameof(AzBlobService), nameof(SaveBlobFromStringAsync), blobName, containerName, ex.Message);
             throw;
         }
     }
@@ -101,12 +104,13 @@ public class AzBlobService : IAzBlobService
             var blobClient = containerClient.GetBlobClient(blobName);
             await blobClient.UploadAsync(content, overwrite: true, cancellationToken);
 
-            _logger.LogInformation("Successfully saved blob '{BlobName}' to container '{ContainerName}'", blobName, containerName);
+            _logger.LogInformation("{Class}_{Method} : Successfully saved blob '{BlobName}' to container '{ContainerName}'", 
+                nameof(AzBlobService), nameof(SaveBlobFromStreamAsync), blobName, containerName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save blob '{BlobName}' to container '{ContainerName}': {ErrorMessage}", 
-                blobName, containerName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to save blob '{BlobName}' to container '{ContainerName}': {ErrorMessage}", 
+                nameof(AzBlobService), nameof(SaveBlobFromStreamAsync), blobName, containerName, ex.Message);
             throw;
         }
     }
@@ -123,8 +127,8 @@ public class AzBlobService : IAzBlobService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to check if blob '{BlobName}' exists in container '{ContainerName}': {ErrorMessage}", 
-                blobName, containerName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to check if blob '{BlobName}' exists in container '{ContainerName}': {ErrorMessage}", 
+                nameof(AzBlobService), nameof(BlobExistsAsync), blobName, containerName, ex.Message);
             throw;
         }
     }
@@ -137,12 +141,13 @@ public class AzBlobService : IAzBlobService
             var blobClient = containerClient.GetBlobClient(blobName);
 
             await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
-            _logger.LogInformation("Successfully deleted blob '{BlobName}' from container '{ContainerName}'", blobName, containerName);
+            _logger.LogInformation("{Class}_{Method} : Successfully deleted blob '{BlobName}' from container '{ContainerName}'", 
+                nameof(AzBlobService), nameof(DeleteBlobAsync), blobName, containerName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete blob '{BlobName}' from container '{ContainerName}': {ErrorMessage}", 
-                blobName, containerName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to delete blob '{BlobName}' from container '{ContainerName}': {ErrorMessage}", 
+                nameof(AzBlobService), nameof(DeleteBlobAsync), blobName, containerName, ex.Message);
             throw;
         }
     }
@@ -155,7 +160,8 @@ public class AzBlobService : IAzBlobService
             
             if (!await containerClient.ExistsAsync(cancellationToken))
             {
-                _logger.LogWarning("Container '{ContainerName}' does not exist", containerName);
+                _logger.LogWarning("{Class}_{Method} : Container '{ContainerName}' does not exist", 
+                    nameof(AzBlobService), nameof(ListBlobsAsync), containerName);
                 return Enumerable.Empty<string>();
             }
 
@@ -169,8 +175,8 @@ public class AzBlobService : IAzBlobService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to list blobs in container '{ContainerName}' with prefix '{Prefix}': {ErrorMessage}", 
-                containerName, prefix, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to list blobs in container '{ContainerName}' with prefix '{Prefix}': {ErrorMessage}", 
+                nameof(AzBlobService), nameof(ListBlobsAsync), containerName, prefix, ex.Message);
             throw;
         }
     }

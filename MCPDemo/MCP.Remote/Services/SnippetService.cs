@@ -28,13 +28,14 @@ public class SnippetService : ISnippetService
             var blobName = GetBlobName(snippetName);
             var content = await _azBlobService.GetBlobAsStringAsync(SnippetsContainerName, blobName, cancellationToken);
             
-            _logger.LogInformation("Successfully retrieved snippet '{SnippetName}'", snippetName);
+            _logger.LogInformation("{Class}_{Method} : Successfully retrieved snippet '{SnippetName}'", 
+                nameof(SnippetService), nameof(GetSnippetAsync), snippetName);
             return content;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve snippet '{SnippetName}': {ErrorMessage}", 
-                snippetName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to retrieve snippet '{SnippetName}': {ErrorMessage}", 
+                nameof(SnippetService), nameof(GetSnippetAsync), snippetName, ex.Message);
             throw;
         }
     }
@@ -49,12 +50,13 @@ public class SnippetService : ISnippetService
             var blobName = GetBlobName(snippetName);
             await _azBlobService.SaveBlobFromStringAsync(SnippetsContainerName, blobName, content, cancellationToken);
             
-            _logger.LogInformation("Successfully saved snippet '{SnippetName}'", snippetName);
+            _logger.LogInformation("{Class}_{Method} : Successfully saved snippet '{SnippetName}'", 
+                nameof(SnippetService), nameof(SaveSnippetAsync), snippetName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save snippet '{SnippetName}': {ErrorMessage}", 
-                snippetName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to save snippet '{SnippetName}': {ErrorMessage}", 
+                nameof(SnippetService), nameof(SaveSnippetAsync), snippetName, ex.Message);
             throw;
         }
     }
@@ -68,13 +70,14 @@ public class SnippetService : ISnippetService
             var blobName = GetBlobName(snippetName);
             var exists = await _azBlobService.BlobExistsAsync(SnippetsContainerName, blobName, cancellationToken);
             
-            _logger.LogDebug("Snippet '{SnippetName}' exists: {Exists}", snippetName, exists);
+            _logger.LogDebug("{Class}_{Method} : Snippet '{SnippetName}' exists: {Exists}", 
+                nameof(SnippetService), nameof(SnippetExistsAsync), snippetName, exists);
             return exists;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to check if snippet '{SnippetName}' exists: {ErrorMessage}", 
-                snippetName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to check if snippet '{SnippetName}' exists: {ErrorMessage}", 
+                nameof(SnippetService), nameof(SnippetExistsAsync), snippetName, ex.Message);
             throw;
         }
     }
@@ -88,12 +91,13 @@ public class SnippetService : ISnippetService
             var blobName = GetBlobName(snippetName);
             await _azBlobService.DeleteBlobAsync(SnippetsContainerName, blobName, cancellationToken);
             
-            _logger.LogInformation("Successfully deleted snippet '{SnippetName}'", snippetName);
+            _logger.LogInformation("{Class}_{Method} : Successfully deleted snippet '{SnippetName}'", 
+                nameof(SnippetService), nameof(DeleteSnippetAsync), snippetName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete snippet '{SnippetName}': {ErrorMessage}", 
-                snippetName, ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to delete snippet '{SnippetName}': {ErrorMessage}", 
+                nameof(SnippetService), nameof(DeleteSnippetAsync), snippetName, ex.Message);
             throw;
         }
     }
@@ -110,12 +114,14 @@ public class SnippetService : ISnippetService
                 .Select(name => name.Substring(0, name.Length - SnippetFileExtension.Length))
                 .ToList();
 
-            _logger.LogInformation("Successfully listed {Count} snippets", snippetNames.Count);
+            _logger.LogInformation("{Class}_{Method} : Successfully listed {Count} snippets", 
+                nameof(SnippetService), nameof(ListSnippetsAsync), snippetNames.Count);
             return snippetNames;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to list snippets: {ErrorMessage}", ex.Message);
+            _logger.LogError(ex, "{Class}_{Method} : Failed to list snippets: {ErrorMessage}", 
+                nameof(SnippetService), nameof(ListSnippetsAsync), ex.Message);
             throw;
         }
     }
