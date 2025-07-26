@@ -1,7 +1,7 @@
+using MCP.Remote.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
-using MCP.Remote.Services;
 using static MCP.Remote.Tools.ToolsInformation;
 
 namespace MCP.Remote.Tools;
@@ -26,7 +26,7 @@ public class SnippetsTool
         try
         {
             var snippetName = context.Arguments?.GetValueOrDefault(SnippetNamePropertyName)?.ToString();
-            
+
             if (string.IsNullOrWhiteSpace(snippetName))
             {
                 throw new ArgumentException("Snippet name is required", nameof(snippetName));
@@ -38,9 +38,9 @@ public class SnippetsTool
         catch (Exception ex)
         {
             var snippetName = context.Arguments?.GetValueOrDefault(SnippetNamePropertyName)?.ToString() ?? "unknown";
-            _logger.LogError(ex, "{Class}_{Method} : Failed to retrieve snippet '{SnippetName}': {ErrorMessage}", 
+            _logger.LogError(ex, "{Class}_{Method} : Failed to retrieve snippet '{SnippetName}': {ErrorMessage}",
                 nameof(SnippetsTool), nameof(GetSnippet), snippetName, ex.Message);
-            
+
             return new { success = false, error = ex.Message, snippetName };
         }
     }
@@ -72,9 +72,9 @@ public class SnippetsTool
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Class}_{Method} : Failed to save snippet '{SnippetName}': {ErrorMessage}", 
+            _logger.LogError(ex, "{Class}_{Method} : Failed to save snippet '{SnippetName}': {ErrorMessage}",
                 nameof(SnippetsTool), nameof(SaveSnippet), name, ex.Message);
-            
+
             return new { success = false, error = ex.Message, snippetName = name };
         }
     }
@@ -92,9 +92,9 @@ public class SnippetsTool
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Class}_{Method} : Failed to list snippets: {ErrorMessage}", 
+            _logger.LogError(ex, "{Class}_{Method} : Failed to list snippets: {ErrorMessage}",
                 nameof(SnippetsTool), nameof(ListSnippets), ex.Message);
-            
+
             return new { success = false, error = ex.Message };
         }
     }
@@ -126,9 +126,9 @@ public class SnippetsTool
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Class}_{Method} : Failed to delete snippet '{SnippetName}': {ErrorMessage}", 
+            _logger.LogError(ex, "{Class}_{Method} : Failed to delete snippet '{SnippetName}': {ErrorMessage}",
                 nameof(SnippetsTool), nameof(DeleteSnippet), name, ex.Message);
-            
+
             return new { success = false, error = ex.Message, snippetName = name };
         }
     }

@@ -1,8 +1,8 @@
-using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using Azure.Storage.Blobs;
 using MCP.Remote.Services;
+using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using static MCP.Remote.Tools.ToolsInformation;
 
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -14,7 +14,7 @@ builder.EnableMcpToolMetadata();
 // Register Azure Blob Service
 builder.Services.AddSingleton<BlobServiceClient>(provider =>
 {
-    var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage") ?? 
+    var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage") ??
                           throw new InvalidOperationException("AzureWebJobsStorage connection string is not configured");
     return new BlobServiceClient(connectionString);
 });

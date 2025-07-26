@@ -1,6 +1,4 @@
-﻿
-
-using MCP.Common;
+﻿using MCP.Common;
 using MCP.Common.Tools;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

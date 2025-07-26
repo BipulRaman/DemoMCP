@@ -1,5 +1,5 @@
-using System.ComponentModel;
 using ModelContextProtocol.Server;
+using System.ComponentModel;
 
 namespace MCP.Common.Tools;
 

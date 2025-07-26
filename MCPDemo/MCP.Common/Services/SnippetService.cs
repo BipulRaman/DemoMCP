@@ -20,15 +20,15 @@ public class SnippetService : ISnippetService
     public async Task<string> GetSnippetAsync(string snippetName, CancellationToken cancellationToken = default)
     {
         ValidateSnippetName(snippetName);
-        
+
         var blobName = GetBlobName(snippetName);
         var content = await _blobService.GetBlobAsStringAsync(SnippetsContainerName, blobName, cancellationToken);
-        
+
         if (string.IsNullOrEmpty(content))
         {
             throw new KeyNotFoundException($"Snippet '{snippetName}' not found");
         }
-        
+
         return content;
     }
 
@@ -62,7 +62,7 @@ public class SnippetService : ISnippetService
         ValidateSnippetName(snippetName);
 
         var blobName = GetBlobName(snippetName);
-        
+
         // Check if snippet exists before trying to delete
         var exists = await _blobService.BlobExistsAsync(SnippetsContainerName, blobName, cancellationToken);
         if (!exists)
@@ -76,7 +76,7 @@ public class SnippetService : ISnippetService
     public async Task<IEnumerable<string>> ListSnippetsAsync(CancellationToken cancellationToken = default)
     {
         var blobNames = await _blobService.ListBlobsAsync(SnippetsContainerName, cancellationToken: cancellationToken);
-        
+
         // Extract snippet names from blob names (remove .json extension)
         var snippetNames = blobNames
             .Where(name => name.EndsWith(SnippetFileExtension, StringComparison.OrdinalIgnoreCase))
