@@ -125,3 +125,5 @@ Configure in your workspace's `.vscode/mcp.json`:
     }
 }
 ```
+
+<img width="2558" height="1438" alt="image" src="https://github.com/user-attachments/assets/00e96ae6-4f71-449a-8d2b-8de50117ecc9" />
