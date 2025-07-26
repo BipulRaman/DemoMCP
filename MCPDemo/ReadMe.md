@@ -87,7 +87,7 @@ Both projects support seamless integration with VS Code and GitHub Copilot. Crea
         },
         "demo-mcp-remote": {
             "type": "sse",
-            "url": "http://localhost:7071/runtime/webhooks/mcp/sse"
+            "url": "http://localhost:7234/runtime/webhooks/mcp/sse"
         }
     }
 }
