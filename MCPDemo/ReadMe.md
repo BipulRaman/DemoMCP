@@ -14,7 +14,7 @@
 
 This repository contains **production-ready** demonstration projects showcasing the Model Context Protocol (MCP) implementation using C# and .NET 9.0. The projects illustrate different transport mechanisms and provide comprehensive examples for building, configuring, and integrating MCP servers with AI assistants like GitHub Copilot and Claude Desktop.
 
-Each project demonstrates the same restaurant management use case through different transport layers, allowing you to choose the implementation that best fits your deployment scenario and architecture requirements.
+Each project demonstrates the same core MCP functionality through different transport layers, allowing you to choose the implementation that best fits your deployment scenario and architecture requirements.
 
 ## What is MCP?
 The Model Context Protocol (MCP) is a standardized protocol that enables AI assistants to securely connect to external data sources and tools. It provides a bridge between AI models and real-world applications, allowing for enhanced functionality and context-aware interactions.
@@ -38,10 +38,9 @@ MCP servers typically consist of:
 
 This repository demonstrates two primary MCP transport implementations, each optimized for different deployment scenarios:
 
-**Standard Input/Output** - Process-based communication for local development and command-line integration.
+**Standard Input/Output (STDIO)** - Process-based communication for local development and command-line integration.
 
-
-**HTTP/HTTPS** - Network-based communication for web applications and cloud deployment.
+**Server-Sent Events (SSE)** - Event-driven communication for cloud deployment and real-time streaming capabilities.
 
 ### Transport Selection Guidelines
 
@@ -51,11 +50,11 @@ This repository demonstrates two primary MCP transport implementations, each opt
 - Single-user applications
 - Simple deployment scenarios
 
-**Choose HTTP when:**
-- Building web applications
-- Need multi-user support
-- Deploying to cloud platforms
-- Integrating with existing web infrastructure
+**Choose SSE when:**
+- Building cloud-hosted applications
+- Need real-time streaming capabilities
+- Deploying to serverless platforms (Azure Functions)
+- Integrating with cloud infrastructure
 
 ## Testing and Development
 
@@ -86,9 +85,9 @@ Both projects support seamless integration with VS Code and GitHub Copilot. Crea
                 "PATH_TO_YOUR_PROJECT\\MCP.stdio\\MCP.stdio.csproj"
             ]
         },
-        "demo-mcp-http": {
-            "type": "http",
-            "url": "http://localhost:7071"
+        "demo-mcp-remote": {
+            "type": "sse",
+            "url": "http://localhost:7071/runtime/webhooks/mcp/sse"
         }
     }
 }
@@ -114,5 +113,5 @@ Both projects support seamless integration with VS Code and GitHub Copilot. Crea
 - Validate all input parameters to prevent injection attacks
 - Implement appropriate access controls and authentication
 - Sanitize data before processing and storage
-- Use secure communication channels (HTTPS for HTTP transport)
+- Use secure communication channels (HTTPS for SSE transport)
 - Consider rate limiting and request throttling for production deployments

@@ -9,7 +9,7 @@ This repository contains examples and demonstrations of MCP server implementatio
 ### Current Projects
 
 - **[MCP.stdio](MCPDemo/MCP.stdio/)**: A production-ready Standard I/O based MCP server implementation with restaurant management capabilities, built using Microsoft's official MCP SDK
-- **[MCP.http](MCPDemo/MCP.http/)**: An advanced HTTP-based MCP server with real-time streaming capabilities and comprehensive restaurant management features
+- **[MCP.Remote](MCPDemo/MCP.Remote/)**: A cloud-native Azure Functions based MCP server with Server-Sent Events (SSE) transport and snippet management capabilities
 
 ## 🚀 Getting Started
 
@@ -17,7 +17,7 @@ This repository contains examples and demonstrations of MCP server implementatio
 - .NET 9.0 SDK or later
 - VS Code (recommended)
 - For MCP.stdio: Claude Desktop or other MCP-enabled AI assistant
-- For MCP.http: Any HTTP client or web browser
+- For MCP.Remote: Azure Functions Core Tools, Azure Storage (or Azurite for local development)
 
 Each project includes comprehensive documentation with setup instructions, available tools, usage examples, and deployment guides.
 
@@ -36,7 +36,7 @@ All projects in this repository use:
 The repository demonstrates two primary MCP transport implementations:
 
 - **STDIO Transport** (`MCP.stdio`): Direct integration with AI assistants using standard input/output
-- **HTTP Transport** (`MCP.http`): Web-based implementation with streaming capabilities and REST API compatibility
+- **SSE Transport** (`MCP.Remote`): Server-Sent Events based implementation for cloud deployment with Azure Functions
 
 ## 📖 Project Documentation
 
@@ -44,7 +44,7 @@ For detailed information about each project, including setup instructions, API r
 
 - [MCPDemo Overview](MCPDemo/ReadMe.md) - Comprehensive guide to MCP concepts and implementation details
 - [MCP.stdio Documentation](MCPDemo/MCP.stdio/README.md) - Standard I/O transport implementation
-- [MCP.http Documentation](MCPDemo/MCP.http/README.md) - HTTP transport with streaming capabilities
+- [MCP.Remote Documentation](MCPDemo/MCP.Remote/README.md) - Server-Sent Events transport with Azure Functions
 
 ---
 
