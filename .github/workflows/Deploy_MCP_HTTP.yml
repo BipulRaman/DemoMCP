@@ -38,7 +38,7 @@ jobs:
         restore-keys: |
           build-artifacts-${{ runner.os }}-
 
-    - name: Publish the .NET Web API project
+    - name: Publish the .NET App
       run: dotnet publish MCPDemo/MCP.Remote/MCP.Remote.csproj -c Release -o ./publish
 
     - name: Deploy to Azure Functions
