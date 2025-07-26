@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Azure.Storage.Blobs" Version="12.25.0" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="9.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
+		<PackageReference Include="ModelContextProtocol" Version="0.2.0-preview.3" />
+		<PackageReference Include="System.Text.Json" Version="9.0.7" />
+	</ItemGroup>
+</Project>
