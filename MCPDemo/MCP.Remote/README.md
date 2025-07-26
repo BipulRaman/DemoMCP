@@ -86,7 +86,7 @@ npm install -g azure-functions-core-tools@4 --unsafe-perm true
 func start
 ```
 
-The server will start and be available at `http://localhost:7234/runtime/webhooks/mcp/sse` for HTTP requests.
+The server will start and be available at `http://localhost:7071/api/` for HTTP requests.
 
 #### Using Visual Studio Code
 1. Open the project in VS Code
