@@ -1,23 +1,24 @@
 using MCP.Common;
-using MCP.Common.Tools;
+using MCP.SSE.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register blob service with connection string
-var connectionString = builder.Configuration.GetConnectionString("BlobStorage") ?? "UseDevelopmentStorage=true";
-builder.Services.AddSharedServices(connectionString);
-
+// Configure options and services
 builder.Services
-    .AddMcpServer()
-    .WithHttpTransport()
-    .WithPrompts<SnippetPrompts>()
-    .WithResources<SnippetResources>()
-    .WithTools<SnippetTools>();
-
-builder.Services.AddHttpClient();
+    .AddMcpConfiguration(builder.Configuration)
+    .AddMcpServices(builder.Configuration)
+    .AddMcpAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
-app.MapMcp();
+// Configure middleware pipeline
+app.UseMcpPipeline();
+
+// Map endpoints
+app.MapMcpEndpoints();
+
+// Log startup information
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("MCP.SSE server started successfully");
 
 app.Run();

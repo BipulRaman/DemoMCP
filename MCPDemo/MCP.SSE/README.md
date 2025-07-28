@@ -1,6 +1,67 @@
-# MCP.SSE - Model Context Protocol Web API Server
+# MCP.SSE - Model Context Protocol Web API Server with Entra ID Authentication
 
-> A production-ready ASP.NET Core Web API based Model Context Protocol (MCP) server implementation for web-hosted AI assistant integration with snippet management capabilities using Server-Sent Events (SSE).
+> A production-ready ASP.NET Core Web API based Model Context Protocol (MCP) server implementation for web-hosted AI assistant integration with snippet management capabilities using Server-Sent Events (SSE) and Microsoft Entra ID authentication.
+
+## 🔐 Authentication Setup
+
+This server uses Microsoft Entra ID (Azure AD) for authentication. Follow these steps to configure it:
+
+### 1. Create an Entra ID App Registration
+
+1. Go to the [Azure Portal](https://portal.azure.com)
+2. Navigate to **Azure Active Directory** > **App registrations**
+3. Click **New registration**
+4. Configure the application:
+   - **Name**: `MCP.SSE Server`
+   - **Supported account types**: Choose based on your requirements
+   - **Redirect URI**: Leave blank for now
+5. Click **Register**
+
+### 2. Configure the App Registration
+
+After creating the app registration:
+
+1. **Application (client) ID**: Copy this value for your configuration
+2. **Directory (tenant) ID**: Copy this value for your configuration
+
+#### Configure Expose an API
+1. Go to **Expose an API**
+2. Set the **Application ID URI** (e.g., `api://your-client-id`)
+3. Add scopes:
+   - **mcp:tools**: Access to MCP tools
+   - **mcp:resources**: Access to MCP resources
+
+#### Configure App Roles (Optional)
+1. Go to **App roles**
+2. Create roles such as:
+   - **MCP.User**: Basic access to MCP services
+   - **MCP.Admin**: Administrative access to MCP services
+
+### 3. Update Configuration
+
+Update your `appsettings.json` file:
+
+```json
+{
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "Domain": "your-domain.onmicrosoft.com",
+    "TenantId": "your-tenant-id",
+    "ClientId": "your-client-id",
+    "Audience": "api://your-client-id"
+  },
+  "Authentication": {
+    "ServerUrl": "http://localhost:5000/",
+    "RequiredScopes": ["mcp:tools", "mcp:resources"],
+    "RequiredRoles": ["MCP.User"]
+  }
+}
+```
+
+Replace the placeholders:
+- `your-domain`: Your Azure AD domain
+- `your-tenant-id`: The Directory (tenant) ID
+- `your-client-id`: The Application (client) ID
 
 ## 📋 Table of Contents
 
