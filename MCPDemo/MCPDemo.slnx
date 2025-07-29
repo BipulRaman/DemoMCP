@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="MCP.Common/MCP.Common.csproj" Id="8b8d5190-3f7d-4497-988d-8ac9d56af617" />
   <Project Path="MCP.SSE.EntraAuth/MCP.SSE.EntraAuth.csproj" Id="24b67730-6bd7-4504-84ed-79c58925f20e" />
+  <Project Path="MCP.SSE/MCP.SSE.csproj" Id="ed0ec442-63e6-428a-a6fa-79aff31ac36f" />
   <Project Path="MCP.STDIO/MCP.STDIO.csproj" Id="0c54d7fc-7352-48e4-9be2-9f58d3df39ef" />
   <Project Path="MCP.Remote/MCP.Remote.csproj" Id="250d96db-69ec-4b36-bab3-81f437085780" />
 </Solution>
