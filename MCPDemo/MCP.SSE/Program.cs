@@ -16,6 +16,9 @@ builder.Services.Configure<McpServerOptions>(builder.Configuration.GetSection(Mc
 var connectionString = builder.Configuration.GetConnectionString("BlobStorage") ?? "UseDevelopmentStorage=true";
 builder.Services.AddSharedServices(connectionString);
 
+// Add MCP services
+builder.Services.AddScoped<MCP.SSE.Services.CustomMcpService>();
+
 // Add common services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();

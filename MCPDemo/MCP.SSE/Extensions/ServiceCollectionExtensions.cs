@@ -50,6 +50,16 @@ public static class ServiceCollectionExtensions
                         logger.LogInformation("JWT Token validated successfully for user: {User}",
                             context.Principal?.Identity?.Name ?? "unknown");
                         return Task.CompletedTask;
+                    },
+                    OnMessageReceived = context =>
+                    {
+                        // For SSE connections, also check for token in query string
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
                     }
                 };
             });

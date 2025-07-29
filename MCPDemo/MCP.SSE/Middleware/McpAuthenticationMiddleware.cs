@@ -203,10 +203,7 @@ public class McpAuthenticationMiddleware
 
     private async Task ContinueToNextMiddleware(HttpContext context)
     {
-        if (!context.RequestAborted.IsCancellationRequested && !context.Response.HasStarted)
-        {
-            await _next(context);
-        }
+        await _next(context);
     }
 
     private async Task SendAuthenticationRequiredResponseAsync(HttpContext context)
@@ -230,10 +227,19 @@ public class McpAuthenticationMiddleware
                 message = "Authentication required for this method",
                 data = new
                 {
-                    auth_flow = "device_code",
-                    device_endpoint = $"{_authOptions.ServerUrl.TrimEnd('/')}/auth/device",
+                    auth_flow = "authorization_code",
+                    authorize_endpoint = $"{_authOptions.ServerUrl.TrimEnd('/')}/auth/authorize",
                     token_endpoint = $"{_authOptions.ServerUrl.TrimEnd('/')}/auth/token",
-                    instructions = "Use device code flow: POST to /auth/device to get device code, then poll /auth/token until complete"
+                    sse_url_endpoint = $"{_authOptions.ServerUrl.TrimEnd('/')}/auth/sse-url",
+                    instructions = new
+                    {
+                        step1 = "POST to /auth/authorize to get authorization URL",
+                        step2 = "Open authorization URL in browser and authenticate",
+                        step3 = "Copy authorization code from callback page",
+                        step4 = "POST authorization code to /auth/token to get access token",
+                        step5 = "POST access token to /auth/sse-url to get authenticated SSE URL",
+                        step6 = "Use the returned SSE URL for MCP connections"
+                    }
                 }
             },
             id = "null", // We don't have the original request ID in this context
