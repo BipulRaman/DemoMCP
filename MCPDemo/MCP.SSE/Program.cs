@@ -1,13 +1,35 @@
 using MCP.Common;
+using MCP.Common.Tools;
+using MCP.SSE.Configuration;
 using MCP.SSE.Extensions;
+using MCP.SSE.Middleware;
+using ModelContextProtocol.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure options and services
-builder.Services
-    .AddMcpConfiguration(builder.Configuration)
-    .AddMcpServices(builder.Configuration)
-    .AddMcpAuthentication(builder.Configuration);
+// Configure options
+builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection(AzureAdOptions.SectionName));
+builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection(AuthenticationOptions.SectionName));
+builder.Services.Configure<McpServerOptions>(builder.Configuration.GetSection(McpServerOptions.SectionName));
+
+// Register blob service with connection string
+var connectionString = builder.Configuration.GetConnectionString("BlobStorage") ?? "UseDevelopmentStorage=true";
+builder.Services.AddSharedServices(connectionString);
+
+// Add common services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+builder.Services.AddCors();
+
+// Configure MCP server endpoints
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithPrompts<SnippetPrompts>()
+    .WithResources<SnippetResources>()
+    .WithTools<SnippetTools>();
+
+// Add authentication
+builder.Services.AddMcpAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
