@@ -1,9 +1,9 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using MCP.SSE.Configuration;
+using MCP.SSE.EntraAuth.Configuration;
 
-namespace MCP.SSE.Middleware;
+namespace MCP.SSE.EntraAuth.Middleware;
 
 public class McpAuthenticationMiddleware
 {

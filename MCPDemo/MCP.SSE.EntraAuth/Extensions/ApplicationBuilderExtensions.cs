@@ -1,11 +1,11 @@
-using MCP.SSE.Configuration;
-using MCP.SSE.Middleware;
-using MCP.SSE.Services;
+using MCP.SSE.EntraAuth.Configuration;
+using MCP.SSE.EntraAuth.Middleware;
+using MCP.SSE.EntraAuth.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
-namespace MCP.SSE.Extensions;
+namespace MCP.SSE.EntraAuth.Extensions;
 
 public static class ApplicationBuilderExtensions
 {

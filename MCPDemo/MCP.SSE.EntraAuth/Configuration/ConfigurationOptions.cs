@@ -1,4 +1,4 @@
-namespace MCP.SSE.Configuration;
+namespace MCP.SSE.EntraAuth.Configuration;
 
 public class AzureAdOptions
 {

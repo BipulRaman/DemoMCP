@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using MCP.Common.Services;
 using MCP.Shared;
 
-namespace MCP.SSE.Services;
+namespace MCP.SSE.EntraAuth.Services;
 
 public class CustomMcpService
 {
