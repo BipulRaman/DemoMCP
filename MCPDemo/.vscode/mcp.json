@@ -28,12 +28,9 @@
             "type": "sse",
             "url": "http://localhost:5116"
         },
-        "local-mcp-sse-auth": {
-            "type": "sse",
-            "url": "http://localhost:5116",
-            "headers": {
-                "Authorization": "Bearer <token>"
-            }
+        "local-mcp-sse-browser-auth": {
+            "type": "http",
+            "url": "http://localhost:5116/mcp-custom"
         },
         "local-mcp-stdio": {
             "type": "stdio",

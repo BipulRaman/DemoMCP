@@ -3,6 +3,7 @@ using MCP.Common.Tools;
 using MCP.SSE.Configuration;
 using MCP.SSE.Extensions;
 using MCP.SSE.Middleware;
+using MCP.SSE.Services;
 using ModelContextProtocol.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,7 +18,7 @@ var connectionString = builder.Configuration.GetConnectionString("BlobStorage") 
 builder.Services.AddSharedServices(connectionString);
 
 // Add MCP services
-builder.Services.AddScoped<MCP.SSE.Services.CustomMcpService>();
+builder.Services.AddScoped<CustomMcpService>();
 
 // Add common services
 builder.Services.AddHttpContextAccessor();
