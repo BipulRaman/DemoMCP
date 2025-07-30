@@ -35,9 +35,17 @@ public static class ApplicationBuilderExtensions
         appBuilder.MapGet("/health", () => new { status = "ok", timestamp = DateTime.UtcNow });
 
         // Add server capabilities endpoint (public, no auth required)
-        appBuilder.MapGet("/capabilities", (IOptions<McpServerOptions> mcpOptions, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
+        appBuilder.MapGet("/capabilities", (HttpContext context, IOptions<McpServerOptions> mcpOptions, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
         {
-            var requiredScopes = authOptions.Value.RequiredScopes.Select(s => $"api://{azureOptions.Value.ClientId}/{s}").ToArray();
+            var azure = azureOptions.Value;
+            var auth = authOptions.Value;
+            
+            // Debug: Log configuration values
+            var logger = context.RequestServices.GetService<ILogger<Program>>();
+            logger?.LogInformation("Azure AD Config - ClientId: {ClientId}, TenantId: {TenantId}, Instance: {Instance}", 
+                azure.ClientId, azure.TenantId, azure.Instance);
+            
+            var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}").ToArray();
 
             return new
             {
@@ -48,8 +56,8 @@ public static class ApplicationBuilderExtensions
                     required = true,
                     type = "oauth2",
                     flow = "authorization_code",
-                    authorization_endpoint = $"{azureOptions.Value.Instance}{azureOptions.Value.TenantId}/oauth2/v2.0/authorize",
-                    token_endpoint = $"{azureOptions.Value.Instance}{azureOptions.Value.TenantId}/oauth2/v2.0/token",
+                    authorization_endpoint = $"{azure.Instance.TrimEnd('/')}/{azure.TenantId}/oauth2/v2.0/authorize",
+                    token_endpoint = $"{azure.Instance.TrimEnd('/')}/{azure.TenantId}/oauth2/v2.0/token",
                     scopes = requiredScopes,
                     instructions = new
                     {
@@ -71,13 +79,24 @@ public static class ApplicationBuilderExtensions
             var azure = azureOptions.Value;
             var auth = authOptions.Value;
 
+            // Debug: Log configuration values
+            var logger = context.RequestServices.GetService<ILogger<Program>>();
+            logger?.LogInformation("Auth endpoint - ClientId: {ClientId}, TenantId: {TenantId}, ServerUrl: {ServerUrl}", 
+                azure.ClientId, azure.TenantId, auth.ServerUrl);
+
             if (string.IsNullOrEmpty(azure.TenantId) || string.IsNullOrEmpty(azure.ClientId))
             {
                 context.Response.StatusCode = 500;
                 await context.Response.WriteAsync(JsonSerializer.Serialize(new
                 {
                     error = "configuration_error",
-                    error_description = "Azure AD configuration is missing"
+                    error_description = "Azure AD configuration is missing",
+                    debug_info = new
+                    {
+                        tenant_id = azure.TenantId ?? "null",
+                        client_id = azure.ClientId ?? "null",
+                        server_url = auth.ServerUrl ?? "null"
+                    }
                 }));
                 return;
             }
@@ -97,8 +116,9 @@ public static class ApplicationBuilderExtensions
             var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}");
             var scope = string.Join(" ", requiredScopes);
 
-            // Build authorization URL
-            var authUrl = $"{azure.Instance}{azure.TenantId}/oauth2/v2.0/authorize" +
+            // Build authorization URL with proper URL formation
+            var azureInstance = azure.Instance.TrimEnd('/');
+            var authUrl = $"{azureInstance}/{azure.TenantId}/oauth2/v2.0/authorize" +
                          $"?client_id={Uri.EscapeDataString(azure.ClientId)}" +
                          $"&response_type=code" +
                          $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
@@ -106,12 +126,21 @@ public static class ApplicationBuilderExtensions
                          $"&state={Uri.EscapeDataString(state)}" +
                          $"&response_mode=query";
 
+            logger?.LogInformation("Generated auth URL: {AuthUrl}", authUrl);
+
             var response = new
             {
                 authorization_url = authUrl,
                 state = state,
                 redirect_uri = redirectUri,
-                expires_in = 600 // URL valid for 10 minutes
+                expires_in = 600, // URL valid for 10 minutes
+                debug_info = new
+                {
+                    client_id = azure.ClientId,
+                    tenant_id = azure.TenantId,
+                    instance = azure.Instance,
+                    server_url = auth.ServerUrl
+                }
             };
 
             context.Response.ContentType = "application/json";
@@ -205,7 +234,7 @@ public static class ApplicationBuilderExtensions
                 return;
             }
 
-            var tokenUrl = $"{azure.Instance}{azure.TenantId}/oauth2/v2.0/token";
+            var tokenUrl = $"{azure.Instance.TrimEnd('/')}/{azure.TenantId}/oauth2/v2.0/token";
             var redirectUri = $"{auth.ServerUrl.TrimEnd('/')}/auth/callback";
 
             // Include the same scope that was used in the authorization request

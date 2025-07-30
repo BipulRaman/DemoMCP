@@ -2,7 +2,7 @@
     "servers": {
         "local-mcp-sse-browser-auth": {
             "type": "http",
-            "url": "https://bipulmcpapi.azurewebsites.net/mcp-custom"
+            "url": "http://localhost:5116/mcp-custom"
         }
     }
 }

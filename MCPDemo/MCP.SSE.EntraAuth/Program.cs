@@ -11,6 +11,13 @@ builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection(Azur
 builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection(AuthenticationOptions.SectionName));
 builder.Services.Configure<McpServerOptions>(builder.Configuration.GetSection(McpServerOptions.SectionName));
 
+// Debug: Log configuration values at startup
+var tempAzureConfig = builder.Configuration.GetSection(AzureAdOptions.SectionName).Get<AzureAdOptions>();
+var tempAuthConfig = builder.Configuration.GetSection(AuthenticationOptions.SectionName).Get<AuthenticationOptions>();
+
+Console.WriteLine($"Azure AD Config - ClientId: {tempAzureConfig?.ClientId}, TenantId: {tempAzureConfig?.TenantId}");
+Console.WriteLine($"Auth Config - ServerUrl: {tempAuthConfig?.ServerUrl}");
+
 // Register blob service with connection string
 var connectionString = builder.Configuration.GetConnectionString("BlobStorage") ?? "UseDevelopmentStorage=true";
 builder.Services.AddSharedServices(connectionString);
