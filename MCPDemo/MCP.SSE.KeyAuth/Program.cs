@@ -1,9 +1,9 @@
 using Azure.Storage.Blobs;
-using MCP.Remote.Services;
+using MCP.SSE.KeyAuth.Services;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using static MCP.Remote.Tools.ToolsInformation;
+using static MCP.SSE.KeyAuth.Tools.ToolsInformation;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 

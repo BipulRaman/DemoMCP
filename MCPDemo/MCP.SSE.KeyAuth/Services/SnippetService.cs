@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace MCP.Remote.Services;
+namespace MCP.SSE.KeyAuth.Services;
 
 /// <summary>
 /// Service for managing code snippets using Azure Blob Storage

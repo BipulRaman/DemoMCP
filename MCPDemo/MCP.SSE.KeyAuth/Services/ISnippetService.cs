@@ -1,4 +1,4 @@
-namespace MCP.Remote.Services;
+namespace MCP.SSE.KeyAuth.Services;
 
 /// <summary>
 /// Interface for snippet operations

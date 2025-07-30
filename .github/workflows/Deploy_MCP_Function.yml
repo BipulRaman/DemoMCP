@@ -3,7 +3,7 @@ name: CI-CD -- MCP Azure Functions
 on:
   push:
     paths:
-      - 'MCPDemo/MCP.Remote/**'
+      - 'MCPDemo/MCP.SSE.KeyAuth/**'
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
           nuget-packages-${{ runner.os }}-
 
     - name: Build the .NET Web API project
-      run: dotnet build MCPDemo/MCP.Remote/MCP.Remote.csproj
+      run: dotnet build MCPDemo/MCP.SSE.KeyAuth/MCP.SSE.KeyAuth.csproj
 
     - name: Cache build artifacts
       uses: actions/cache@v3
@@ -39,7 +39,7 @@ jobs:
           build-artifacts-${{ runner.os }}-
 
     - name: Publish the .NET App
-      run: dotnet publish MCPDemo/MCP.Remote/MCP.Remote.csproj -c Release -o ./publish
+      run: dotnet publish MCPDemo/MCP.SSE.KeyAuth/MCP.SSE.KeyAuth.csproj -c Release -o ./publish
 
     - name: Deploy to Azure Functions
       uses: azure/webapps-deploy@v2

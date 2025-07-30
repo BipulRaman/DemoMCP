@@ -1,9 +1,9 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Mcp;
 using Microsoft.Extensions.Logging;
-using static MCP.Remote.Tools.ToolsInformation;
+using static MCP.SSE.KeyAuth.Tools.ToolsInformation;
 
-namespace MCP.Remote.Tools;
+namespace MCP.SSE.KeyAuth.Tools;
 
 public class HelloTool(ILogger<HelloTool> logger)
 {

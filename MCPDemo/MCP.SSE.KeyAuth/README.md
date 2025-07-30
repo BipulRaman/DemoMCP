@@ -1,4 +1,4 @@
-# MCP.Remote - Model Context Protocol Azure Functions Server
+# MCP.SSE.KeyAuth - Model Context Protocol Azure Functions Server
 
 > A production-ready Azure Functions based Model Context Protocol (MCP) server implementation for cloud-hosted AI assistant integration with snippet management capabilities.
 
@@ -12,15 +12,15 @@
 
 ## 🌟 Introduction
 
-The **MCP.Remote** server is a cloud-native implementation of the Model Context Protocol (MCP) specification using Azure Functions. Built on .NET 9.0 with the official Microsoft MCP SDK and Azure Functions Worker, it provides scalable, serverless integration with AI assistants like Claude Desktop, VS Code with GitHub Copilot, and other MCP-enabled applications.
+The **MCP.SSE.KeyAuth** server is a cloud-native implementation of the Model Context Protocol (MCP) specification using Azure Functions. Built on .NET 9.0 with the official Microsoft MCP SDK and Azure Functions Worker, it provides scalable, serverless integration with AI assistants like Claude Desktop, VS Code with GitHub Copilot, and other MCP-enabled applications.
 
 ## 🏗️ Architecture
 
-The MCP.Remote server follows a serverless, cloud-native architecture optimized for Azure Functions:
+The MCP.SSE.KeyAuth server follows a serverless, cloud-native architecture optimized for Azure Functions:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   MCP.Remote Server                                        │
+│                                   MCP.SSE.KeyAuth Server                                        │
 ├────────────────────────────────────────────────────────────────────────────────────────────┤
 │  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────────────┐      │
 │  │        Tools         │  │      Functions       │  │           Storage            │      │
@@ -77,7 +77,7 @@ sequenceDiagram
 
 #### Command Line Execution
 ```bash
-cd MCP.Remote
+cd MCP.SSE.KeyAuth
 
 # Install Azure Functions Core Tools (if not installed)
 npm install -g azure-functions-core-tools@4 --unsafe-perm true

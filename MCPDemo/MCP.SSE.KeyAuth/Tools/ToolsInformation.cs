@@ -1,4 +1,4 @@
-namespace MCP.Remote.Tools;
+namespace MCP.SSE.KeyAuth.Tools;
 
 internal sealed class ToolsInformation
 {

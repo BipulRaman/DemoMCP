@@ -3,7 +3,7 @@ name: CI-CD -- MCP Azure App Service
 on:
   push:
     paths:
-      - 'MCPDemo/MCP.SSE.EntraAuth/**'
+      - 'MCPDemo/MCP.HTTP.EntraAuth/**'
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
           nuget-packages-${{ runner.os }}-
 
     - name: Build the .NET Web API project
-      run: dotnet build MCPDemo/MCP.SSE.EntraAuth/MCP.SSE.EntraAuth.csproj
+      run: dotnet build MCPDemo/MCP.HTTP.EntraAuth/MCP.HTTP.EntraAuth.csproj
 
     - name: Cache build artifacts
       uses: actions/cache@v3
@@ -39,7 +39,7 @@ jobs:
           build-artifacts-${{ runner.os }}-
 
     - name: Publish the .NET App
-      run: dotnet publish MCPDemo/MCP.SSE.EntraAuth/MCP.SSE.EntraAuth.csproj -c Release -o ./publish
+      run: dotnet publish MCPDemo/MCP.HTTP.EntraAuth/MCP.HTTP.EntraAuth.csproj -c Release -o ./publish
 
     - name: Deploy to Azure App Service
       uses: azure/webapps-deploy@v2

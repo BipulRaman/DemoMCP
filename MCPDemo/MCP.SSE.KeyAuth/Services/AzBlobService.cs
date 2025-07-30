@@ -3,7 +3,7 @@ using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using System.Text;
 
-namespace MCP.Remote.Services;
+namespace MCP.SSE.KeyAuth.Services;
 
 /// <summary>
 /// Implementation of Azure Blob Storage operations
