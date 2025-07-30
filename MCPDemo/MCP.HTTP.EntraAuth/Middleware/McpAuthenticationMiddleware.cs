@@ -176,8 +176,12 @@ public class McpAuthenticationMiddleware
     private static bool IsUserAuthenticated(HttpContext context) =>
         context.User.Identity?.IsAuthenticated == true;
 
-    private static string GetUserName(HttpContext context) =>
-        context.User.Identity?.Name ?? "unknown";
+    private static string GetUserName(HttpContext context)
+    {
+        // Try multiple claim types to get the user name
+        var name = GetClaimValue(context, "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name");
+        return string.IsNullOrEmpty(name) ? "unknown" : name;
+    }
 
     private async Task HandleNonMcpRequestAsync(HttpContext context)
     {
@@ -196,11 +200,9 @@ public class McpAuthenticationMiddleware
 
     private void LogAuthenticatedUser(HttpContext context)
     {
-        if (!_logger.IsEnabled(LogLevel.Debug)) return;
-
-        var name = GetUserName(context);
-        var upn = GetClaimValue(context, "upn", "preferred_username");
-        var scopes = GetClaimValue(context, "scp", "scope");
+        var name = GetClaimValue(context, "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name");
+        var upn = GetClaimValue(context, "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress");
+        var scopes = GetClaimValue(context, "http://schemas.microsoft.com/identity/claims/scope");
         var roles = string.Join(", ", context.User.FindAll(ClaimTypes.Role).Select(c => c.Value));
 
         _logger.LogDebug("{Class}_{Method} : Authenticated request from {Name} ({UPN}) with scopes: {Scopes}, roles: {Roles}",
@@ -209,14 +211,23 @@ public class McpAuthenticationMiddleware
 
     private static string GetClaimValue(HttpContext context, params string[] claimTypes)
     {
+        if (context?.User?.Claims == null)
+            return "unknown";
+
         foreach (var claimType in claimTypes)
         {
-            var value = context.User.FindFirstValue(claimType);
-            if (!string.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(claimType))
+                continue;
+
+            var claim = context.User.Claims.FirstOrDefault(c =>
+                string.Equals(c.Type, claimType, StringComparison.OrdinalIgnoreCase));
+
+            if (claim != null && !string.IsNullOrEmpty(claim.Value))
             {
-                return value;
+                return claim.Value;
             }
         }
+
         return "unknown";
     }
 

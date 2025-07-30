@@ -3,11 +3,12 @@ using MCP.Common.Tools;
 using MCP.HTTP.EntraAuth.Extensions;
 using MCP.HTTP.EntraAuth.Middleware;
 using MCP.HTTP.EntraAuth.Services;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Application Insights telemetry
-builder.Services.AddApplicationInsightsTelemetry();
+// Add OpenTelemetry and configure it to use Azure Monitor.
+builder.Services.AddOpenTelemetry().UseAzureMonitor();
 
 // Configure and validate options
 builder.Services.AddConfigs(builder.Configuration);
