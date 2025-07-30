@@ -3,7 +3,6 @@ using MCP.SSE.EntraAuth.Middleware;
 using MCP.SSE.EntraAuth.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
-using System.Linq;
 using System.Text.Json;
 
 namespace MCP.SSE.EntraAuth.Extensions;
@@ -38,28 +37,27 @@ public static class ApplicationBuilderExtensions
         // Add server capabilities endpoint (public, no auth required)
         appBuilder.MapGet("/capabilities", (HttpContext context, IOptions<McpServerOptions> mcpOptions, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
         {
-            var azure = azureOptions.Value ?? new AzureAdOptions();
-            var auth = authOptions.Value ?? new AuthenticationOptions();
-            var mcp = mcpOptions.Value ?? new McpServerOptions();
+            var azure = azureOptions.Value;
+            var auth = authOptions.Value;
             
             // Debug: Log configuration values
             var logger = context.RequestServices.GetService<ILogger<Program>>();
             logger?.LogInformation("Azure AD Config - ClientId: {ClientId}, TenantId: {TenantId}, Instance: {Instance}", 
-                azure.ClientId ?? "null", azure.TenantId ?? "null", azure.Instance ?? "null");
+                azure.ClientId, azure.TenantId, azure.Instance);
             
-            var requiredScopes = auth.RequiredScopes?.Select(s => $"api://{azure.ClientId}/{s}").ToArray() ?? Array.Empty<string>();
+            var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}").ToArray();
 
             return new
             {
-                name = mcp.Name ?? "MCP.SSE",
-                version = mcp.Version ?? "1.0.0",
+                name = mcpOptions.Value.Name,
+                version = mcpOptions.Value.Version,
                 authentication = new
                 {
                     required = true,
                     type = "oauth2",
                     flow = "authorization_code",
-                    authorization_endpoint = $"{(azure.Instance ?? "https://login.microsoftonline.com/").TrimEnd('/')}/{azure.TenantId ?? ""}/oauth2/v2.0/authorize",
-                    token_endpoint = $"{(azure.Instance ?? "https://login.microsoftonline.com/").TrimEnd('/')}/{azure.TenantId ?? ""}/oauth2/v2.0/token",
+                    authorization_endpoint = $"{azure.Instance.TrimEnd('/')}/{azure.TenantId}/oauth2/v2.0/authorize",
+                    token_endpoint = $"{azure.Instance.TrimEnd('/')}/{azure.TenantId}/oauth2/v2.0/token",
                     scopes = requiredScopes,
                     instructions = new
                     {
@@ -71,20 +69,20 @@ public static class ApplicationBuilderExtensions
                         step6 = "Use the returned SSE URL for MCP connections"
                     }
                 },
-                transport = mcp.Transport ?? "sse"
+                transport = mcpOptions.Value.Transport
             };
         });
 
         // Add authorization URL generation endpoint
         appBuilder.MapPost("/auth/authorize", async (HttpContext context, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
         {
-            var azure = azureOptions.Value ?? new AzureAdOptions();
-            var auth = authOptions.Value ?? new AuthenticationOptions();
+            var azure = azureOptions.Value;
+            var auth = authOptions.Value;
 
             // Debug: Log configuration values
             var logger = context.RequestServices.GetService<ILogger<Program>>();
             logger?.LogInformation("Auth endpoint - ClientId: {ClientId}, TenantId: {TenantId}, ServerUrl: {ServerUrl}", 
-                azure.ClientId ?? "null", azure.TenantId ?? "null", auth.ServerUrl ?? "null");
+                azure.ClientId, azure.TenantId, auth.ServerUrl);
 
             if (string.IsNullOrEmpty(azure.TenantId) || string.IsNullOrEmpty(azure.ClientId))
             {
@@ -112,14 +110,14 @@ public static class ApplicationBuilderExtensions
             var state = Guid.NewGuid().ToString("N");
 
             // Build redirect URI - use server URL + callback path
-            var redirectUri = $"{(auth.ServerUrl ?? "http://localhost:5116/").TrimEnd('/')}/auth/callback";
+            var redirectUri = $"{auth.ServerUrl.TrimEnd('/')}/auth/callback";
 
             // Build required scopes
-            var requiredScopes = auth.RequiredScopes?.Select(s => $"api://{azure.ClientId}/{s}") ?? Enumerable.Empty<string>();
+            var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}");
             var scope = string.Join(" ", requiredScopes);
 
             // Build authorization URL with proper URL formation
-            var azureInstance = (azure.Instance ?? "https://login.microsoftonline.com/").TrimEnd('/');
+            var azureInstance = azure.Instance.TrimEnd('/');
             var authUrl = $"{azureInstance}/{azure.TenantId}/oauth2/v2.0/authorize" +
                          $"?client_id={Uri.EscapeDataString(azure.ClientId)}" +
                          $"&response_type=code" +
@@ -138,10 +136,10 @@ public static class ApplicationBuilderExtensions
                 expires_in = 600, // URL valid for 10 minutes
                 debug_info = new
                 {
-                    client_id = azure.ClientId ?? "null",
-                    tenant_id = azure.TenantId ?? "null",
-                    instance = azure.Instance ?? "null",
-                    server_url = auth.ServerUrl ?? "null"
+                    client_id = azure.ClientId,
+                    tenant_id = azure.TenantId,
+                    instance = azure.Instance,
+                    server_url = auth.ServerUrl
                 }
             };
 
@@ -195,8 +193,8 @@ public static class ApplicationBuilderExtensions
         appBuilder.MapPost("/auth/token", async (HttpContext context, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
         {
             var httpClient = context.RequestServices.GetRequiredService<HttpClient>();
-            var azure = azureOptions.Value ?? new AzureAdOptions();
-            var auth = authOptions.Value ?? new AuthenticationOptions();
+            var azure = azureOptions.Value;
+            var auth = authOptions.Value;
 
             if (string.IsNullOrEmpty(azure.TenantId) || string.IsNullOrEmpty(azure.ClientId))
             {
@@ -236,11 +234,11 @@ public static class ApplicationBuilderExtensions
                 return;
             }
 
-            var tokenUrl = $"{(azure.Instance ?? "https://login.microsoftonline.com/").TrimEnd('/')}/{azure.TenantId}/oauth2/v2.0/token";
-            var redirectUri = $"{(auth.ServerUrl ?? "http://localhost:5116/").TrimEnd('/')}/auth/callback";
+            var tokenUrl = $"{azure.Instance.TrimEnd('/')}/{azure.TenantId}/oauth2/v2.0/token";
+            var redirectUri = $"{auth.ServerUrl.TrimEnd('/')}/auth/callback";
 
             // Include the same scope that was used in the authorization request
-            var requiredScopes = auth.RequiredScopes?.Select(s => $"api://{azure.ClientId}/{s}") ?? Enumerable.Empty<string>();
+            var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}");
             var scope = string.Join(" ", requiredScopes);
 
             var tokenBody = new FormUrlEncodedContent(new[]
@@ -275,11 +273,11 @@ public static class ApplicationBuilderExtensions
         // Add OAuth protected resource metadata endpoint
         appBuilder.Map("/.well-known/oauth-protected-resource", (HttpContext context, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
         {
-            var azure = azureOptions.Value ?? new AzureAdOptions();
-            var auth = authOptions.Value ?? new AuthenticationOptions();
+            var azure = azureOptions.Value;
+            var auth = authOptions.Value;
             var serverUrl = context.Request.Scheme + "://" + context.Request.Host;
-            var authorizationServer = $"{azure.Instance ?? "https://login.microsoftonline.com/"}{azure.TenantId ?? ""}/oauth2/v2.0";
-            var requiredScopes = auth.RequiredScopes?.Select(s => $"api://{azure.ClientId}/{s}").ToArray() ?? Array.Empty<string>();
+            var authorizationServer = $"{azure.Instance}{azure.TenantId}/oauth2/v2.0";
+            var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}").ToArray();
 
             var metadata = new
             {
@@ -298,11 +296,11 @@ public static class ApplicationBuilderExtensions
         // Add OAuth authorization server metadata endpoint
         appBuilder.Map("/.well-known/oauth-authorization-server", (HttpContext context, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
         {
-            var azure = azureOptions.Value ?? new AzureAdOptions();
-            var auth = authOptions.Value ?? new AuthenticationOptions();
+            var azure = azureOptions.Value;
+            var auth = authOptions.Value;
             var serverUrl = context.Request.Scheme + "://" + context.Request.Host;
-            var server = $"{azure.Instance ?? "https://login.microsoftonline.com/"}{azure.TenantId ?? ""}/oauth2/v2.0";
-            var requiredScopes = auth.RequiredScopes?.Select(s => $"api://{azure.ClientId}/{s}").ToArray() ?? Array.Empty<string>();
+            var server = $"{azure.Instance}{azure.TenantId}/oauth2/v2.0";
+            var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}").ToArray();
 
             var metadata = new
             {
@@ -322,18 +320,18 @@ public static class ApplicationBuilderExtensions
         // Add dynamic client registration endpoint
         appBuilder.MapPost("/register", (HttpContext context, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
         {
-            var azure = azureOptions.Value ?? new AzureAdOptions();
-            var auth = authOptions.Value ?? new AuthenticationOptions();
+            var azure = azureOptions.Value;
+            var auth = authOptions.Value;
             var serverUrl = context.Request.Scheme + "://" + context.Request.Host;
-            var requiredScopes = auth.RequiredScopes?.Select(s => $"api://{azure.ClientId}/{s}").ToArray() ?? Array.Empty<string>();
+            var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}").ToArray();
 
             var registration = new
             {
-                client_id = azure.ClientId ?? "",
+                client_id = azure.ClientId,
                 client_secret = "*** Contact administrator ***",
                 registration_endpoint = serverUrl + "/register",
-                authorization_endpoint = (azure.Instance ?? "https://login.microsoftonline.com/") + (azure.TenantId ?? "") + "/oauth2/v2.0/authorize",
-                token_endpoint = (azure.Instance ?? "https://login.microsoftonline.com/") + (azure.TenantId ?? "") + "/oauth2/v2.0/token",
+                authorization_endpoint = azure.Instance + azure.TenantId + "/oauth2/v2.0/authorize",
+                token_endpoint = azure.Instance + azure.TenantId + "/oauth2/v2.0/token",
                 scope = string.Join(" ", requiredScopes)
             };
             context.Response.ContentType = "application/json";
@@ -343,7 +341,7 @@ public static class ApplicationBuilderExtensions
         // Add SSE URL generation endpoint for authenticated connections
         appBuilder.MapPost("/auth/sse-url", async (HttpContext context, IOptions<AuthenticationOptions> authOptions) =>
         {
-            var auth = authOptions.Value ?? new AuthenticationOptions();
+            var auth = authOptions.Value;
 
             // Read the request body for the access token
             var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
@@ -373,7 +371,7 @@ public static class ApplicationBuilderExtensions
             }
 
             // Generate SSE URL with embedded token
-            var sseUrl = $"{(auth.ServerUrl ?? "http://localhost:5116/").TrimEnd('/')}/?access_token={Uri.EscapeDataString(accessToken)}";
+            var sseUrl = $"{auth.ServerUrl.TrimEnd('/')}/?access_token={Uri.EscapeDataString(accessToken)}";
 
             var response = new
             {
