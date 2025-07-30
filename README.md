@@ -14,6 +14,7 @@ This repository contains examples and demonstrations of MCP server implementatio
 ### Project Documentation
 - **[MCP.STDIO/README.md](./MCPDemo/MCP.STDIO/README.md)** - Standard I/O console application for local development
 - **[MCP.SSE/README.md](./MCPDemo/MCP.SSE/README.md)** - ASP.NET Core Web API with Server-Sent Events
-- **[MCP.Remote/README.md](./MCPDemo/MCP.Remote/README.md)** - Azure Functions serverless implementation
+- **[MCP.HTTP.EntraAuth/README.md](./MCPDemo/MCP.HTTP.EntraAuth/README.md)** - Web API with Microsoft Entra ID authentication
+- **[MCP.SSE.KeyAuth/README.md](./MCPDemo/MCP.SSE.KeyAuth/README.md)** - Azure Functions with API key authentication
 
 *Explore the world of Model Context Protocol servers! 🚀*

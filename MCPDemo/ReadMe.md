@@ -33,7 +33,7 @@ The Model Context Protocol (MCP) is a standardized protocol that enables AI assi
 
 ## Projects Structure
 
-This repository contains four distinct MCP server implementations:
+This repository contains five distinct MCP server implementations:
 
 ### 🖥️ MCP.STDIO
 **Standard Input/Output Server** - Process-based communication for local development and command-line integration.
@@ -49,12 +49,21 @@ This repository contains four distinct MCP server implementations:
 - **Use Case**: Web applications, real-time streaming, containerized deployments
 - **Location**: `./MCP.SSE/`
 
-### ☁️ MCP.Remote
-**Azure Functions Server** - Serverless implementation for cloud deployment.
+### 🔐 MCP.HTTP.EntraAuth
+**Web API Server with Entra ID Authentication** - Secure HTTP-based server with Microsoft Entra ID authentication and Server-Sent Events.
+- **Target Framework**: .NET 9.0 ASP.NET Core Web API
+- **Transport**: HTTP with Server-Sent Events (SSE)
+- **Authentication**: Microsoft Entra ID (Azure AD)
+- **Use Case**: Enterprise applications, secure web deployments, authenticated access
+- **Location**: `./MCP.HTTP.EntraAuth/`
+
+### ☁️ MCP.SSE.KeyAuth
+**Azure Functions Server** - Serverless implementation for cloud deployment with API key authentication.
 - **Target Framework**: .NET 9.0 Azure Functions Worker
 - **Transport**: HTTP with Server-Sent Events (SSE)
+- **Authentication**: API Key based
 - **Use Case**: Serverless deployments, Azure cloud integration, scalable solutions
-- **Location**: `./MCP.Remote/`
+- **Location**: `./MCP.SSE.KeyAuth/`
 
 ### 📚 MCP.Common
 **Shared Library** - Common services, models, and utilities shared across all implementations.
