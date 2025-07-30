@@ -387,7 +387,7 @@ public static class ApplicationBuilderExtensions
         appBuilder.MapMcp("/");
 
         // Add custom MCP endpoint that bypasses library session validation
-        appBuilder.MapPost("/mcp-custom", [Authorize] async (HttpContext context, CustomMcpService mcpService) =>
+        appBuilder.MapPost("/mcp-connect", [Authorize] async (HttpContext context, CustomMcpService mcpService) =>
         {
             try
             {
