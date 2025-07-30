@@ -3,17 +3,26 @@ using System.Text.Json;
 
 namespace MCP.HTTP.EntraAuth.Services;
 
-public class CustomMcpService
+/// <summary>
+/// The McpConnectService class implements the IMcpConnectService interface
+/// </summary>
+public class McpConnectService : IMcpConnectService
 {
     private readonly ISnippetService _snippetService;
-    private readonly ILogger<CustomMcpService> _logger;
+    private readonly ILogger<McpConnectService> _logger;
 
-    public CustomMcpService(ISnippetService snippetService, ILogger<CustomMcpService> logger)
+    /// <summary>
+    /// The constructor for McpConnectService
+    /// </summary>
+    /// <param name="snippetService"></param>
+    /// <param name="logger"></param>
+    public McpConnectService(ISnippetService snippetService, ILogger<McpConnectService> logger)
     {
         _snippetService = snippetService;
         _logger = logger;
     }
 
+    /// <inheritdoc/>
     public async Task<object> HandleMcpRequestAsync(JsonDocument request, HttpContext context)
     {
         try
@@ -32,7 +41,8 @@ public class CustomMcpService
                 _ => null
             };
 
-            _logger.LogInformation("Handling MCP request: {Method}", method);
+            _logger.LogInformation("{Class}_{Method} : Handling MCP request: {Method}",
+                nameof(McpConnectService), nameof(HandleMcpRequestAsync), method);
 
             return method switch
             {
@@ -49,7 +59,8 @@ public class CustomMcpService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling MCP request");
+            _logger.LogError(ex, "{Class}_{Method} : Error handling MCP request: {ErrorMessage}",
+                nameof(McpConnectService), nameof(HandleMcpRequestAsync), ex.Message);
             var idElement = request.RootElement.TryGetProperty("id", out var tempId) ? tempId : JsonDocument.Parse("null").RootElement;
 
             // Convert JsonElement to actual value to avoid disposal issues
@@ -67,6 +78,12 @@ public class CustomMcpService
         }
     }
 
+    /// <summary>
+    /// Handles the "initialize" method of the MCP protocol.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="id"></param>
+    /// <returns></returns>
     private object HandleInitialize(JsonDocument request, object? id)
     {
         return new
@@ -91,6 +108,11 @@ public class CustomMcpService
         };
     }
 
+    /// <summary>
+    /// Handles the "initialized" method of the MCP protocol.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     private object HandleInitialized(object? id)
     {
         return new
@@ -101,6 +123,11 @@ public class CustomMcpService
         };
     }
 
+    /// <summary>
+    /// Handles the "tools/list" method of the MCP protocol.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     private Task<object> HandleToolsList(object? id)
     {
         var tools = new object[]
@@ -155,6 +182,13 @@ public class CustomMcpService
         });
     }
 
+    /// <summary>
+    /// Handles the "tools/call" method of the MCP protocol.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
     private async Task<object> HandleToolsCall(JsonDocument request, object? id)
     {
         var paramsElement = request.RootElement.GetProperty("params");
@@ -192,6 +226,11 @@ public class CustomMcpService
         }
     }
 
+    /// <summary>
+    /// Handles the "get_snippet" tool call.
+    /// </summary>
+    /// <param name="arguments"></param>
+    /// <returns></returns>
     private async Task<object> HandleGetSnippet(JsonElement arguments)
     {
         var name = arguments.GetProperty("name").GetString();
@@ -322,18 +361,18 @@ public class CustomMcpService
 
                 var prompt = $@"Please review the following code snippet:
 
-**Snippet Name:** {snippetDetails.Name}
-**Language:** {snippetDetails.Language ?? "Unknown"}
+                **Snippet Name:** {snippetDetails.Name}
+                **Language:** {snippetDetails.Language ?? "Unknown"}
 
-```{snippetDetails.Language ?? "text"}
-{snippetDetails.Content}
-```
+                ```{snippetDetails.Language ?? "text"}
+                {snippetDetails.Content}
+                ```
 
-Please provide feedback on:
-1. Code quality and best practices
-2. Potential bugs or issues
-3. Performance considerations
-4. Suggestions for improvement";
+                Please provide feedback on:
+                1. Code quality and best practices
+                2. Potential bugs or issues
+                3. Performance considerations
+                4. Suggestions for improvement";
 
                 return new
                 {
@@ -360,6 +399,10 @@ Please provide feedback on:
             catch (KeyNotFoundException)
             {
                 return CreateErrorResponse(-32602, "Snippet not found", id);
+            }
+            catch (Exception ex)
+            {
+                return CreateErrorResponse(-32603, "Internal error " + ex.Message, id);
             }
         }
 

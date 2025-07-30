@@ -5,6 +5,9 @@ using System.Text.Json;
 
 namespace MCP.HTTP.EntraAuth.Middleware;
 
+/// <summary>
+/// The McpAuthenticationMiddleware class is responsible for handling authentication
+/// </summary>
 public class McpAuthenticationMiddleware
 {
     private readonly RequestDelegate _next;
@@ -23,6 +26,14 @@ public class McpAuthenticationMiddleware
     private const int AuthenticationRequiredCode = -32001;
     private const string JsonRpcVersion = "2.0";
 
+    /// <summary>
+    /// Middleware constructor that initializes the middleware with necessary dependencies.
+    /// </summary>
+    /// <param name="next"></param>
+    /// <param name="logger"></param>
+    /// <param name="authOptions"></param>
+    /// <param name="azureAdOptions"></param>
+    /// <exception cref="ArgumentNullException"></exception>
     public McpAuthenticationMiddleware(
         RequestDelegate next,
         ILogger<McpAuthenticationMiddleware> logger,
@@ -35,6 +46,11 @@ public class McpAuthenticationMiddleware
         _azureAdOptions = azureAdOptions?.Value ?? throw new ArgumentNullException(nameof(azureAdOptions));
     }
 
+    /// <summary>
+    /// Middleware entry point that processes incoming HTTP requests.
+    /// </summary>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public async Task InvokeAsync(HttpContext context)
     {
         // Early exit conditions
@@ -70,7 +86,8 @@ public class McpAuthenticationMiddleware
 
             if (method == null)
             {
-                _logger.LogDebug("Could not extract method from MCP request, continuing...");
+                _logger.LogDebug("{Class}_{Method} : Could not extract method from MCP request, continuing...",
+                    nameof(McpAuthenticationMiddleware), nameof(HandleMcpRequestAsync));
                 await ContinueToNextMiddleware(context);
                 return;
             }
@@ -80,7 +97,8 @@ public class McpAuthenticationMiddleware
             {
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug("Allowing MCP protocol method without auth: {Method}", method);
+                    _logger.LogDebug("{Class}_{Method} : Allowing MCP protocol method without auth: {Method}",
+                        nameof(McpAuthenticationMiddleware), nameof(HandleMcpRequestAsync), method);
                 }
                 await ContinueToNextMiddleware(context);
                 return;
@@ -97,7 +115,8 @@ public class McpAuthenticationMiddleware
 
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug("Authenticated request from {Name} for method: {Method}",
+                    _logger.LogDebug("{Class}_{Method} : Authenticated request from {Name} for method: {Method}",
+                        nameof(McpAuthenticationMiddleware), nameof(HandleMcpRequestAsync),
                         GetUserName(context), method);
                 }
             }
@@ -107,12 +126,14 @@ public class McpAuthenticationMiddleware
         catch (JsonException)
         {
             // If we can't parse the JSON, let the MCP server handle it
-            _logger.LogDebug("Could not parse MCP request JSON, continuing...");
+            _logger.LogDebug("{Class}_{Method} : Could not parse MCP request JSON, continuing...",
+                nameof(McpAuthenticationMiddleware), nameof(HandleMcpRequestAsync));
             await ContinueToNextMiddleware(context);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing MCP request");
+            _logger.LogError(ex, "{Class}_{Method} : Error processing MCP request: {ErrorMessage}",
+                nameof(McpAuthenticationMiddleware), nameof(HandleMcpRequestAsync), ex.Message);
             await ContinueToNextMiddleware(context);
         }
         finally
@@ -166,7 +187,8 @@ public class McpAuthenticationMiddleware
         }
         else if (IsProtectedPath(context.Request.Path))
         {
-            _logger.LogWarning("Unauthenticated request to protected path: {Path}", context.Request.Path);
+            _logger.LogWarning("{Class}_{Method} : Unauthenticated request to protected path: {Path}",
+                nameof(McpAuthenticationMiddleware), nameof(HandleNonMcpRequestAsync), context.Request.Path);
         }
 
         await ContinueToNextMiddleware(context);
@@ -181,8 +203,8 @@ public class McpAuthenticationMiddleware
         var scopes = GetClaimValue(context, "scp", "scope");
         var roles = string.Join(", ", context.User.FindAll(ClaimTypes.Role).Select(c => c.Value));
 
-        _logger.LogDebug("Authenticated request from {Name} ({UPN}) with scopes: {Scopes}, roles: {Roles}",
-            name, upn, scopes, roles);
+        _logger.LogDebug("{Class}_{Method} : Authenticated request from {Name} ({UPN}) with scopes: {Scopes}, roles: {Roles}",
+            nameof(McpAuthenticationMiddleware), nameof(LogAuthenticatedUser), name, upn, scopes, roles);
     }
 
     private static string GetClaimValue(HttpContext context, params string[] claimTypes)
@@ -208,7 +230,8 @@ public class McpAuthenticationMiddleware
 
     private async Task SendAuthenticationRequiredResponseAsync(HttpContext context)
     {
-        _logger.LogWarning("Unauthenticated request to protected MCP method");
+        _logger.LogWarning("{Class}_{Method} : Unauthenticated request to protected MCP method",
+            nameof(McpAuthenticationMiddleware), nameof(SendAuthenticationRequiredResponseAsync));
 
         context.Response.StatusCode = 401;
         context.Response.ContentType = JsonContentType;
@@ -248,6 +271,9 @@ public class McpAuthenticationMiddleware
     }
 }
 
+/// <summary>
+/// Middleware extension methods for adding MCP authentication to the ASP.NET Core pipeline.
+/// </summary>
 public static class McpAuthenticationMiddlewareExtensions
 {
     public static IApplicationBuilder UseMcpAuthentication(this IApplicationBuilder builder)

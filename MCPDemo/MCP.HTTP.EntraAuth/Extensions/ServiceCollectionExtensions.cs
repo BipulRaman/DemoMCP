@@ -4,8 +4,18 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace MCP.HTTP.EntraAuth.Extensions;
 
+/// <summary>
+/// The ServiceCollectionExtensions class provides extension methods for configuring
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Adds authentication services to the specified IServiceCollection using Azure AD and JWT Bearer tokens.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configuration"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
     public static IServiceCollection AddMcpAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var azureAdOptions = configuration.GetSection(AzureAdConfig.SectionName).Get<AzureAdConfig>()!;
@@ -47,14 +57,15 @@ public static class ServiceCollectionExtensions
                     OnAuthenticationFailed = context =>
                     {
                         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogError("JWT Authentication failed: {Exception}", context.Exception.Message);
+                        logger.LogError("{Class}_{Method} : JWT Authentication failed: {Exception}",
+                            nameof(ServiceCollectionExtensions), nameof(AddMcpAuthentication), context.Exception.Message);
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>
                     {
                         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogInformation("JWT Token validated successfully for user: {User}",
-                            context.Principal?.Identity?.Name ?? "unknown");
+                        logger.LogInformation("{Class}_{Method} : JWT Token validated successfully for user: {User}",
+                            nameof(ServiceCollectionExtensions), nameof(AddMcpAuthentication), context.Principal?.Identity?.Name ?? "unknown");
                         return Task.CompletedTask;
                     },
                     OnMessageReceived = context =>
@@ -74,6 +85,43 @@ public static class ServiceCollectionExtensions
         {
             options.AddPolicy("McpAccess", policy => policy.RequireRole(authOptions.RequiredRoles));
         });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds configuration services to the specified IServiceCollection.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configuration"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    public static IServiceCollection AddConfigs(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Configure options
+        services.Configure<AzureAdConfig>(configuration.GetSection(AzureAdConfig.SectionName));
+        services.Configure<AuthenticationConfig>(configuration.GetSection(AuthenticationConfig.SectionName));
+        services.Configure<McpServerConfig>(configuration.GetSection(McpServerConfig.SectionName));
+
+        // Validate configurations at startup
+        var azureAdConfig = configuration.GetSection(AzureAdConfig.SectionName).Get<AzureAdConfig>();
+        var authConfig = configuration.GetSection(AuthenticationConfig.SectionName).Get<AuthenticationConfig>();
+        var mcpServerConfig = configuration.GetSection(McpServerConfig.SectionName).Get<McpServerConfig>();
+
+        if (azureAdConfig != null && !azureAdConfig.IsValid())
+        {
+            throw new InvalidOperationException("Azure AD configuration is invalid");
+        }
+
+        if (authConfig != null && !authConfig.IsValid())
+        {
+            throw new InvalidOperationException("Authentication configuration is invalid");
+        }
+
+        if (mcpServerConfig != null && !mcpServerConfig.IsValid())
+        {
+            throw new InvalidOperationException("MCP Server configuration is invalid");
+        }
 
         return services;
     }

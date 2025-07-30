@@ -7,6 +7,9 @@ using System.Text.Json;
 
 namespace MCP.HTTP.EntraAuth.Controllers;
 
+/// <summary>
+/// The McpAuthController handles authentication and authorization for the Model Context Protocol (MCP).
+/// </summary>
 [ApiController]
 public class McpAuthController : ControllerBase
 {
@@ -16,6 +19,14 @@ public class McpAuthController : ControllerBase
     private readonly HttpClient _httpClient;
     private readonly ILogger<McpAuthController> _logger;
 
+    /// <summary>
+    /// The constructor initializes the controller with necessary configurations and services.
+    /// </summary>
+    /// <param name="azureConfig"></param>
+    /// <param name="authConfig"></param>
+    /// <param name="mcpConfig"></param>
+    /// <param name="httpClient"></param>
+    /// <param name="logger"></param>
     public McpAuthController(
         IOptions<AzureAdConfig> azureConfig,
         IOptions<AuthenticationConfig> authConfig,
@@ -30,16 +41,25 @@ public class McpAuthController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Gets the health status of the MCP authentication service.
+    /// </summary>
+    /// <returns></returns>
     [HttpGet("/health")]
     public IActionResult Health()
     {
         return Ok(new { status = "ok", timestamp = DateTime.UtcNow });
     }
 
+    /// <summary>
+    /// Gets the capabilities of the MCP authentication service, including OAuth configuration.
+    /// </summary>
+    /// <returns></returns>
     [HttpGet("/capabilities")]
     public IActionResult GetCapabilities()
     {
-        _logger.LogInformation("Capabilities endpoint called");
+        _logger.LogInformation("{Class}_{Method} : Capabilities endpoint called",
+            nameof(McpAuthController), nameof(GetCapabilities));
         return Ok(new
         {
             name = _mcpConfig.Name,
@@ -67,10 +87,15 @@ public class McpAuthController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Authorizes the client by generating an authorization URL.
+    /// </summary>
+    /// <returns></returns>
     [HttpPost("/auth/authorize")]
     public async Task<IActionResult> GetAuthorizationUrl()
     {
-        _logger.LogInformation("Authorization URL requested");
+        _logger.LogInformation("{Class}_{Method} : Authorization URL requested",
+            nameof(McpAuthController), nameof(GetAuthorizationUrl));
 
         if (!_azureConfig.IsValid())
         {
@@ -97,7 +122,8 @@ public class McpAuthController : ControllerBase
             _authConfig.GetFormattedScopes(_azureConfig.ClientId)
         );
 
-        _logger.LogInformation("Generated auth URL: {AuthUrl}", authUrl);
+        _logger.LogInformation("{Class}_{Method} : Generated auth URL: {AuthUrl}",
+            nameof(McpAuthController), nameof(GetAuthorizationUrl), authUrl);
 
         var response = new
         {
@@ -116,9 +142,19 @@ public class McpAuthController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Authentication callback endpoint that handles the response from the authorization server.
+    /// </summary>
+    /// <param name="code"></param>
+    /// <param name="state"></param>
+    /// <param name="error"></param>
+    /// <param name="error_description"></param>
+    /// <returns></returns>
     [HttpGet("/auth/callback")]
     public IActionResult AuthCallback(string? code, string? state, string? error, string? error_description)
     {
+        _logger.LogInformation("{Class}_{Method} : Auth callback received with code: {Code}, state: {State}, error: {Error}",
+            nameof(McpAuthController), nameof(AuthCallback), code, state, error);
         if (!string.IsNullOrEmpty(error))
         {
             return BadRequest(new
@@ -151,9 +187,17 @@ public class McpAuthController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Authorizes the client by exchanging the authorization code for an access token.
+    /// </summary>
+    /// <param name="tokenRequest"></param>
+    /// <returns></returns>
     [HttpPost("/auth/token")]
     public async Task<IActionResult> ExchangeToken([FromBody] Dictionary<string, object> tokenRequest)
     {
+        _logger.LogInformation("{Class}_{Method} : Token exchange requested with body: {TokenRequest}",
+            nameof(McpAuthController), nameof(ExchangeToken), JsonSerializer.Serialize(tokenRequest));
+
         if (!_azureConfig.IsValid())
         {
             return StatusCode(500, new
@@ -216,9 +260,17 @@ public class McpAuthController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Allows clients to get a Server-Sent Events (SSE) URL for real-time updates.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
     [HttpPost("/auth/sse-url")]
     public IActionResult GetSseUrl([FromBody] Dictionary<string, object> request)
     {
+        _logger.LogInformation("{Class}_{Method} : SSE URL requested with body: {Request}",
+            nameof(McpAuthController), nameof(GetSseUrl), JsonSerializer.Serialize(request));
+
         if (request == null || !request.TryGetValue("access_token", out var tokenObj))
         {
             return BadRequest(new
@@ -250,9 +302,16 @@ public class McpAuthController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// Registers the MCP server with Azure AD, providing necessary OAuth endpoints and client information.
+    /// </summary>
+    /// <returns></returns>
     [HttpPost("/register")]
     public IActionResult Register()
     {
+        _logger.LogInformation("{Class}_{Method} : Registration endpoint called",
+            nameof(McpAuthController), nameof(Register));
+
         var serverUrl = $"{Request.Scheme}://{Request.Host}";
         var requiredScopes = _authConfig.GetFormattedScopes(_azureConfig.ClientId).Split(' ');
 
@@ -269,9 +328,16 @@ public class McpAuthController : ControllerBase
         return Ok(registration);
     }
 
+    /// <summary>
+    /// Gets metadata for the OAuth protected resource, including supported scopes and endpoints.
+    /// </summary>
+    /// <returns></returns>
     [HttpGet("/.well-known/oauth-protected-resource")]
     public IActionResult GetOAuthProtectedResourceMetadata()
     {
+        _logger.LogInformation("{Class}_{Method} : OAuth protected resource metadata requested",
+            nameof(McpAuthController), nameof(GetOAuthProtectedResourceMetadata));
+
         var serverUrl = $"{Request.Scheme}://{Request.Host}";
         var authorizationServer = _azureConfig.GetOAuthServerUrl();
         var requiredScopes = _authConfig.GetFormattedScopes(_azureConfig.ClientId).Split(' ');
@@ -290,9 +356,16 @@ public class McpAuthController : ControllerBase
         return Ok(metadata);
     }
 
+    /// <summary>
+    /// Gets metadata for the OAuth authorization server, including endpoints and supported scopes.
+    /// </summary>
+    /// <returns></returns>
     [HttpGet("/.well-known/oauth-authorization-server")]
     public IActionResult GetOAuthAuthorizationServerMetadata()
     {
+        _logger.LogInformation("{Class}_{Method} : OAuth authorization server metadata requested",
+            nameof(McpAuthController), nameof(GetOAuthAuthorizationServerMetadata));
+
         var serverUrl = $"{Request.Scheme}://{Request.Host}";
         var server = _azureConfig.GetOAuthServerUrl();
         var requiredScopes = _authConfig.GetFormattedScopes(_azureConfig.ClientId).Split(' ');
@@ -312,10 +385,18 @@ public class McpAuthController : ControllerBase
         return Ok(metadata);
     }
 
+    /// <summary>
+    /// Connects to the Model Context Protocol (MCP) service, handling incoming requests and returning appropriate responses.
+    /// </summary>
+    /// <param name="mcpService"></param>
+    /// <returns></returns>
     [HttpPost("/mcp-connect")]
     [Authorize]
-    public async Task<IActionResult> McpConnect([FromServices] CustomMcpService mcpService)
+    public async Task<IActionResult> McpConnect([FromServices] IMcpConnectService mcpService)
     {
+        _logger.LogInformation("{Class}_{Method} : MCP connect endpoint called",
+            nameof(McpAuthController), nameof(McpConnect));
+
         try
         {
             var body = await new StreamReader(Request.Body).ReadToEndAsync();

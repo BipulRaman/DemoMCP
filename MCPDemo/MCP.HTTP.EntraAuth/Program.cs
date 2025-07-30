@@ -1,43 +1,20 @@
 using MCP.Common;
 using MCP.Common.Tools;
-using MCP.HTTP.EntraAuth.Configuration;
 using MCP.HTTP.EntraAuth.Extensions;
 using MCP.HTTP.EntraAuth.Middleware;
 using MCP.HTTP.EntraAuth.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure options
-builder.Services.Configure<AzureAdConfig>(builder.Configuration.GetSection(AzureAdConfig.SectionName));
-builder.Services.Configure<AuthenticationConfig>(builder.Configuration.GetSection(AuthenticationConfig.SectionName));
-builder.Services.Configure<McpServerConfig>(builder.Configuration.GetSection(McpServerConfig.SectionName));
-
-// Validate configurations at startup
-var azureAdConfig = builder.Configuration.GetSection(AzureAdConfig.SectionName).Get<AzureAdConfig>();
-var authConfig = builder.Configuration.GetSection(AuthenticationConfig.SectionName).Get<AuthenticationConfig>();
-var mcpServerConfig = builder.Configuration.GetSection(McpServerConfig.SectionName).Get<McpServerConfig>();
-
-if (azureAdConfig != null && !azureAdConfig.IsValid())
-{
-    throw new InvalidOperationException("Azure AD configuration is invalid");
-}
-
-if (authConfig != null && !authConfig.IsValid())
-{
-    throw new InvalidOperationException("Authentication configuration is invalid");
-}
-
-if (mcpServerConfig != null && !mcpServerConfig.IsValid())
-{
-    throw new InvalidOperationException("MCP Server configuration is invalid");
-}
+// Configure and validate options
+builder.Services.AddConfigs(builder.Configuration);
 
 // Register blob service with connection string
 var connectionString = builder.Configuration.GetConnectionString("BlobStorage") ?? "UseDevelopmentStorage=true";
 builder.Services.AddSharedServices(connectionString);
 
 // Add MCP services
-builder.Services.AddScoped<CustomMcpService>();
+builder.Services.AddScoped<IMcpConnectService, McpConnectService>();
 
 // Add common services
 builder.Services.AddHttpContextAccessor();
@@ -81,6 +58,7 @@ app.MapControllers();
 
 // Log startup information
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("MCP.SSE server started successfully");
+logger.LogInformation("{Class}_{Method} : MCP.HTTP.EntraAuth server started successfully",
+    nameof(Program), "Main");
 
 app.Run();
