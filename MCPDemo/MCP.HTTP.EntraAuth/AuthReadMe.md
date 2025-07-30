@@ -1,10 +1,10 @@
-# MCP.SSE Authentication Flow
+# MCP.HTTP Authentication Flow
 
-> Browser-based OAuth2 authentication implementation for MCP.SSE server with Azure Active Directory integration.
+> Browser-based OAuth2 authentication implementation for MCP.HTTP server with Azure Active Directory integration.
 
 ## Overview
 
-The MCP.SSE server implements **browser-based OAuth2 authorization code flow** with Azure AD, protecting MCP tools, resources, and prompts while allowing public access to initialization endpoints.
+The MCP.HTTP server implements **browser-based OAuth2 authorization code flow** with Azure AD, protecting MCP tools, resources, and prompts while allowing public access to initialization endpoints.
 
 ## Architecture
 
@@ -61,26 +61,26 @@ Bypasses built-in MCP library session validation for browser auth scenarios.
 - **MCP Protocol Translation:** Converts HTTP requests to MCP protocol responses
 - **Bypasses Library Limitations:** Avoids "user mismatch" errors from built-in MCP session validation
 
-## Authentication Flow Through `/mcp-custom`
+## Authentication Flow Through `/mcp-connect`
 
-The `/mcp-custom` endpoint provides a simplified authentication model designed for browser-based OAuth flows.
+The `/mcp-connect` endpoint provides a simplified authentication model designed for browser-based OAuth flows.
 
 ### Process Overview
 
 ```mermaid
 sequenceDiagram
     participant VSCode as VS Code MCP
-    participant Custom as /mcp-custom Endpoint
+    participant Custom as /mcp-connect Endpoint
     participant Auth as [Authorize] Attribute
     participant Azure as Azure AD
     
-    VSCode->>Custom: POST /mcp-custom (no token)
+    VSCode->>Custom: POST /mcp-connect (no token)
     Custom->>Auth: Check Authorization header
     Auth-->>Custom: 401 Unauthorized
     Custom-->>VSCode: 401 + Auth instructions
     
     Note over VSCode: User follows browser auth flow
-    VSCode->>Custom: POST /mcp-custom (with Bearer token)
+    VSCode->>Custom: POST /mcp-connect (with Bearer token)
     Custom->>Auth: Validate JWT token
     Auth->>Azure: Verify signature & claims
     Azure-->>Auth: Token valid
@@ -95,7 +95,7 @@ sequenceDiagram
 VS Code MCP extension sends request without token:
 
 ```json
-POST /mcp-custom
+POST /mcp-connect
 Content-Type: application/json
 
 {
@@ -121,48 +121,20 @@ Content-Type: application/json
 ```
 
 #### Step 2: Browser Authentication Cycle
-User manually performs OAuth flow:
+VS Code automatically detects the authentication requirement and guides the user through the OAuth flow:
 
-1. **Get Authorization URL**
-   ```bash
-   POST /auth/authorize → Get authorization URL
-   ```
-
-2. **Browser Authentication**
-   ```bash
-   Open URL in browser → Authenticate with Azure AD
-   ```
-
-3. **Get Authorization Code**
-   ```bash
-   Get authorization code from callback page
-   ```
-
-4. **Exchange for Token**
-   ```bash
-   POST /auth/token with code → Get access token
-   ```
+1. **VS Code detects auth requirement** from the 401 response
+2. **Opens browser automatically** to the authorization URL
+3. **User authenticates** with Azure AD in the browser
+4. **VS Code captures the token** from the OAuth callback
+5. **Retries the original request** with the Bearer token
 
 #### Step 3: Authenticated Request
-Update VS Code MCP configuration:
-
-```json
-{
-  "servers": {
-    "local-mcp-sse-browser-auth": {
-      "type": "http",
-      "url": "http://localhost:5116/mcp-custom",
-      "headers": {
-        "Authorization": "Bearer eyJ0eXAiOiJKV1Q..."
-      }
-    }
-  }
-}
-```
+VS Code automatically handles the authentication flow and adds the Bearer token:
 
 **Successful Request:**
 ```json
-POST /mcp-custom
+POST /mcp-connect
 Authorization: Bearer eyJ0eXAiOiJKV1Q...
 Content-Type: application/json
 
@@ -195,7 +167,7 @@ Content-Type: application/json
 
 ### Endpoint Comparison
 
-| Aspect | `/mcp-custom` | Standard `/` (SSE) |
+| Aspect | `/mcp-connect` | Standard `/` (SSE) |
 |--------|---------------|-------------------|
 | **Authentication** | Per-request JWT validation | Session-based validation |
 | **Transport** | HTTP POST requests | Server-Sent Events |
@@ -204,7 +176,7 @@ Content-Type: application/json
 | **Error Handling** | Standard HTTP 401/403 | MCP error responses |
 | **VS Code Compatibility** | Full compatibility | Session mismatch issues |
 
-### Why `/mcp-custom` Was Created
+### Why `/mcp-connect` Was Created
 
 **Standard Endpoint Issues:**
 - Built-in MCP library enforces session validation
@@ -222,7 +194,7 @@ Content-Type: application/json
 
 ```mermaid
 graph TB
-    A[VS Code Request] --> B[/mcp-custom Endpoint]
+    A[VS Code Request] --> B[/mcp-connect Endpoint]
     B --> C[Authorize Attribute]
     C --> D{JWT Token Present?}
     D -->|No| E[401 Unauthorized]
@@ -250,7 +222,7 @@ graph TB
 
 ### Protected (Auth Required)
 - `/` - Standard MCP endpoint (SSE) - JWT via header or query
-- `/mcp-custom` - Custom MCP endpoint (HTTP) - JWT via Authorization header
+- `/mcp-connect` - Custom MCP endpoint (HTTP) - JWT via Authorization header
 
 ## Configuration
 
@@ -288,42 +260,21 @@ graph TB
 ```json
 {
   "servers": {
-    "local-mcp-sse-browser-auth": {
+    "local-mcp-http-browser-auth": {
       "type": "http",
-      "url": "http://localhost:5116/mcp-custom"
+      "url": "http://localhost:5116/mcp-connect"
     }
   }
 }
 ```
 
-### With Authentication Token
-**Note:** Token must be manually obtained via browser flow
-
-```json
-{
-  "servers": {
-    "local-mcp-sse-browser-auth": {
-      "type": "http",
-      "url": "http://localhost:5116/mcp-custom",
-      "headers": {
-        "Authorization": "Bearer manually-obtained-token-here"
-      }
-    }
-  }
-}
-```
-
-**Token Setup Process:**
-1. Run authentication flow manually via curl/browser
-2. Copy the obtained access token
-3. Update VS Code MCP configuration with token
-4. Token expires after 1 hour - repeat when expired
+**Note:** VS Code will automatically handle the OAuth2 authentication flow when the server requires authentication. No manual token configuration is needed.
 
 ## Quick Start
 
 ### 1. Test Without Authentication
 ```bash
-curl -X POST http://localhost:5116/mcp-custom \
+curl -X POST http://localhost:5116/mcp-connect \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
@@ -348,7 +299,7 @@ curl -X POST http://localhost:5116/auth/token \
 
 ### 5. Test With Authentication
 ```bash
-curl -X POST http://localhost:5116/mcp-custom \
+curl -X POST http://localhost:5116/mcp-connect \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
@@ -373,42 +324,4 @@ curl -X POST http://localhost:5116/mcp-custom \
 | Endpoint | Method | Authentication | Description |
 |----------|--------|----------------|-------------|
 | `/` | POST | JWT (header/query) | Standard MCP endpoint (SSE) |
-| `/mcp-custom` | POST | JWT (header only) | Custom MCP endpoint (HTTP) |
-
-## Troubleshooting
-
-### Common Issues
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| "Authentication required" | No token provided | Follow browser auth flow |
-| "Invalid token" | Expired/malformed JWT | Re-authenticate |
-| "User mismatch" | Using SSE endpoint | Use `/mcp-custom` endpoint |
-| CORS errors | Cross-origin blocked | Check CORS configuration |
-
-### Debug Logging
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "MCP.SSE.Middleware.McpAuthenticationMiddleware": "Debug",
-      "Microsoft.AspNetCore.Authentication": "Debug"
-    }
-  }
-}
-```
-
-## Security Features
-
-- **CSRF Protection**: State parameter validation
-- **JWT Signature Verification**: Against Azure AD public keys
-- **Token Expiration**: Automatic validation
-- **Scope-based Access Control**: Per-token permissions
-- **Secure Headers**: CORS and content-type validation
-
-## Testing
-
-Use the provided PowerShell test script:
-```bash
-.\TestScripts\test-browser-auth.ps1
-```
+| `/mcp-connect` | POST | JWT (header only) | Custom MCP endpoint (HTTP) |

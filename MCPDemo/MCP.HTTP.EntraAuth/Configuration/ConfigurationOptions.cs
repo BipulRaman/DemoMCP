@@ -1,4 +1,4 @@
-namespace MCP.SSE.EntraAuth.Configuration;
+namespace MCP.HTTP.EntraAuth.Configuration;
 
 public class AzureAdConfig
 {

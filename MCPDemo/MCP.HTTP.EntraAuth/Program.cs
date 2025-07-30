@@ -1,9 +1,9 @@
 using MCP.Common;
 using MCP.Common.Tools;
-using MCP.SSE.EntraAuth.Configuration;
-using MCP.SSE.EntraAuth.Extensions;
-using MCP.SSE.EntraAuth.Middleware;
-using MCP.SSE.EntraAuth.Services;
+using MCP.HTTP.EntraAuth.Configuration;
+using MCP.HTTP.EntraAuth.Extensions;
+using MCP.HTTP.EntraAuth.Middleware;
+using MCP.HTTP.EntraAuth.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

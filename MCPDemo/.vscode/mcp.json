@@ -1,8 +1,8 @@
 {
     "servers": {
-        "local-mcp-sse-browser-auth": {
+        "mcp-http-entra-auth": {
             "type": "http",
-            "url": "https://bipulmcpapi.azurewebsites.net/mcp-custom"
+            "url": "https://bipulmcphttp.azurewebsites.net/mcp-connect"
         }
     }
 }

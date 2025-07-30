@@ -1,8 +1,8 @@
-using MCP.SSE.EntraAuth.Configuration;
+using MCP.HTTP.EntraAuth.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
-namespace MCP.SSE.EntraAuth.Extensions;
+namespace MCP.HTTP.EntraAuth.Extensions;
 
 public static class ServiceCollectionExtensions
 {

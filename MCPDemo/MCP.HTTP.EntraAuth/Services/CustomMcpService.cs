@@ -1,7 +1,7 @@
 using MCP.Common.Services;
 using System.Text.Json;
 
-namespace MCP.SSE.EntraAuth.Services;
+namespace MCP.HTTP.EntraAuth.Services;
 
 public class CustomMcpService
 {

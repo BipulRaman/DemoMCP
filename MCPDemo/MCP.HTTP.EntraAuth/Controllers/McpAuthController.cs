@@ -1,11 +1,11 @@
-using MCP.SSE.EntraAuth.Configuration;
-using MCP.SSE.EntraAuth.Services;
+using MCP.HTTP.EntraAuth.Configuration;
+using MCP.HTTP.EntraAuth.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
-namespace MCP.SSE.EntraAuth.Controllers;
+namespace MCP.HTTP.EntraAuth.Controllers;
 
 [ApiController]
 public class McpAuthController : ControllerBase
