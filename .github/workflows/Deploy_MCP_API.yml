@@ -44,6 +44,6 @@ jobs:
     - name: Deploy to Azure App Service
       uses: azure/webapps-deploy@v2
       with:
-        app-name: bipulmcpapi
+        app-name: bipulmcphttp
         publish-profile: ${{ secrets.MCP_API_PUBLISH_PROFILE }} # You need to set this secret in your repository settings
         package: ./publish
