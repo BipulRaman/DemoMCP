@@ -57,7 +57,7 @@ public class McpAuthController : ControllerBase
                 {
                     step1 = $"POST to /auth/authorize to get authorization URL (e.g. {_azureConfig.GetAuthorizationEndpoint()})",
                     step2 = $"Open authorization URL in browser and authenticate, client_id to be used is {_azureConfig.ClientId}",
-                    step3 = "Copy authorization code from callback page",
+                    step3 = "The callback will return JSON with the authorization code",
                     step4 = "POST authorization code to /auth/token to get access token",
                     step5 = "POST access token to /auth/sse-url to get authenticated SSE URL",
                     step6 = "Use the returned SSE URL for MCP connections"
@@ -121,37 +121,34 @@ public class McpAuthController : ControllerBase
     {
         if (!string.IsNullOrEmpty(error))
         {
-            var html = $@"
-                <html><body>
-                    <h2>Authentication Error</h2>
-                    <p>Error: {error}</p>
-                    <p>Description: {error_description}</p>
-                    <p>Please close this window and try again.</p>
-                </body></html>";
-            return Content(html, "text/html");
+            return BadRequest(new
+            {
+                success = false,
+                error = error,
+                error_description = error_description,
+                message = "Authentication failed. Please try again."
+            });
         }
 
         if (string.IsNullOrEmpty(code))
         {
-            var html = @"
-                <html><body>
-                    <h2>Authentication Error</h2>
-                    <p>No authorization code received.</p>
-                    <p>Please close this window and try again.</p>
-                </body></html>";
-            return Content(html, "text/html");
+            return BadRequest(new
+            {
+                success = false,
+                error = "missing_code",
+                error_description = "No authorization code received",
+                message = "Authentication failed. Please try again."
+            });
         }
 
-        // Display success page with code for user to copy
-        var successHtml = $@"
-            <html><body>
-                <h2>Authentication Successful</h2>
-                <p>Copy the authorization code below and paste it into your application:</p>
-                <pre style='background: #f0f0f0; padding: 10px; border-radius: 4px;'>{code}</pre>
-                <p>State: {state}</p>
-                <p>You can close this window now.</p>
-            </body></html>";
-        return Content(successHtml, "text/html");
+        return Ok(new
+        {
+            success = true,
+            code = code,
+            state = state,
+            message = "Authentication successful. Use the authorization code to exchange for an access token.",
+            next_step = "POST the authorization code to /auth/token to get an access token"
+        });
     }
 
     [HttpPost("/auth/token")]
