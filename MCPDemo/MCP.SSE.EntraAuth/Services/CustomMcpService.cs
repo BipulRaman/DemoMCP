@@ -1,7 +1,5 @@
-using System.Text.Json;
-using Microsoft.AspNetCore.Authorization;
 using MCP.Common.Services;
-using MCP.Shared;
+using System.Text.Json;
 
 namespace MCP.SSE.EntraAuth.Services;
 
@@ -142,20 +140,20 @@ public class CustomMcpService
 
         try
         {
-        object result = toolName switch
-        {
-            "get_snippet" => await HandleGetSnippet(arguments),
-            "save_snippet" => await HandleSaveSnippet(arguments),
-            "list_snippets" => await HandleListSnippets(),
-            _ => throw new InvalidOperationException($"Unknown tool: {toolName}")
-        };            return new
+            object result = toolName switch
+            {
+                "get_snippet" => await HandleGetSnippet(arguments),
+                "save_snippet" => await HandleSaveSnippet(arguments),
+                "list_snippets" => await HandleListSnippets(),
+                _ => throw new InvalidOperationException($"Unknown tool: {toolName}")
+            }; return new
             {
                 jsonrpc = "2.0",
                 id = id,
                 result = new
                 {
                     content = new[]
-                    {
+                        {
                         new
                         {
                             type = "text",
@@ -216,18 +214,18 @@ public class CustomMcpService
     {
         var paramsElement = request.RootElement.GetProperty("params");
         var uri = paramsElement.GetProperty("uri").GetString();
-        
+
         if (!uri!.StartsWith("snippet://"))
         {
             return CreateErrorResponse(-32602, "Invalid resource URI", id);
         }
 
         var snippetName = uri.Substring("snippet://".Length);
-        
+
         try
         {
             var content = await _snippetService.GetSnippetAsync(snippetName);
-            
+
             return new
             {
                 jsonrpc = "2.0",
@@ -289,11 +287,11 @@ public class CustomMcpService
         if (promptName == "code_review")
         {
             var snippetName = arguments.GetProperty("snippet_name").GetString()!;
-            
+
             try
             {
                 var snippetDetails = await _snippetService.GetSnippetDetailsAsync(snippetName);
-                
+
                 if (snippetDetails == null)
                 {
                     return CreateErrorResponse(-32602, "Snippet not found", id);

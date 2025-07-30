@@ -1,7 +1,7 @@
+using MCP.SSE.EntraAuth.Configuration;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
-using MCP.SSE.EntraAuth.Configuration;
 
 namespace MCP.SSE.EntraAuth.Middleware;
 
@@ -11,7 +11,7 @@ public class McpAuthenticationMiddleware
     private readonly ILogger<McpAuthenticationMiddleware> _logger;
     private readonly AuthenticationOptions _authOptions;
     private readonly AzureAdOptions _azureAdOptions;
-    
+
     // Constants for better performance and maintainability
     private static readonly string[] AllowedMethods = { "initialize", "initialized", "ping", "notifications/initialized" };
     private static readonly string[] ProtectedMethodPrefixes = { "tools/", "resources/", "prompts/" };
@@ -53,7 +53,7 @@ public class McpAuthenticationMiddleware
     }
 
     private static bool IsRootMcpRequest(HttpContext context) =>
-        context.Request.Path == McpRootPath && 
+        context.Request.Path == McpRootPath &&
         string.Equals(context.Request.Method, PostMethod, StringComparison.OrdinalIgnoreCase);
 
     private async Task HandleMcpRequestAsync(HttpContext context)
@@ -67,7 +67,7 @@ public class McpAuthenticationMiddleware
         try
         {
             var method = await ExtractMethodFromJsonAsync(context.Request.Body);
-            
+
             if (method == null)
             {
                 _logger.LogDebug("Could not extract method from MCP request, continuing...");
@@ -128,12 +128,12 @@ public class McpAuthenticationMiddleware
     private static async Task<string?> ExtractMethodFromJsonAsync(Stream requestBody)
     {
         var originalPosition = requestBody.Position;
-        
+
         try
         {
             using var jsonDocument = await JsonDocument.ParseAsync(requestBody);
-            return jsonDocument.RootElement.TryGetProperty("method", out var methodElement) 
-                ? methodElement.GetString() 
+            return jsonDocument.RootElement.TryGetProperty("method", out var methodElement)
+                ? methodElement.GetString()
                 : null;
         }
         finally
@@ -209,7 +209,7 @@ public class McpAuthenticationMiddleware
     private async Task SendAuthenticationRequiredResponseAsync(HttpContext context)
     {
         _logger.LogWarning("Unauthenticated request to protected MCP method");
-        
+
         context.Response.StatusCode = 401;
         context.Response.ContentType = JsonContentType;
 

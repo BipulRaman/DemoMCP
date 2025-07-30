@@ -3,8 +3,6 @@ using MCP.Common.Tools;
 using MCP.SSE.EntraAuth.Configuration;
 using MCP.SSE.EntraAuth.Extensions;
 using MCP.SSE.EntraAuth.Services;
-using MCP.SSE.Middleware;
-using ModelContextProtocol.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 

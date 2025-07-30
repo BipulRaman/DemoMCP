@@ -23,23 +23,23 @@ public static class ApplicationBuilderExtensions
 
         // Use the custom MCP authentication middleware
         app.UseMcpAuthentication();
-        
+
         return app;
     }
-    
+
     public static IApplicationBuilder MapMcpEndpoints(this IApplicationBuilder app)
     {
         var appBuilder = (WebApplication)app;
-        
+
         // Add health check endpoint for MCP clients
         appBuilder.MapGet("/health", () => new { status = "ok", timestamp = DateTime.UtcNow });
 
         // Add server capabilities endpoint (public, no auth required)
-        appBuilder.MapGet("/capabilities", (IOptions<McpServerOptions> mcpOptions, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) => 
+        appBuilder.MapGet("/capabilities", (IOptions<McpServerOptions> mcpOptions, IOptions<AzureAdOptions> azureOptions, IOptions<AuthenticationOptions> authOptions) =>
         {
             var requiredScopes = authOptions.Value.RequiredScopes.Select(s => $"api://{azureOptions.Value.ClientId}/{s}").ToArray();
-            
-            return new 
+
+            return new
             {
                 name = mcpOptions.Value.Name,
                 version = mcpOptions.Value.Version,
@@ -70,7 +70,7 @@ public static class ApplicationBuilderExtensions
         {
             var azure = azureOptions.Value;
             var auth = authOptions.Value;
-            
+
             if (string.IsNullOrEmpty(azure.TenantId) || string.IsNullOrEmpty(azure.ClientId))
             {
                 context.Response.StatusCode = 500;
@@ -81,22 +81,22 @@ public static class ApplicationBuilderExtensions
                 }));
                 return;
             }
-            
+
             // Read the request body for optional parameters
             var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
-            var authRequest = string.IsNullOrEmpty(body) ? new Dictionary<string, object>() : 
+            var authRequest = string.IsNullOrEmpty(body) ? new Dictionary<string, object>() :
                 JsonSerializer.Deserialize<Dictionary<string, object>>(body) ?? new Dictionary<string, object>();
-            
+
             // Generate state parameter for CSRF protection
             var state = Guid.NewGuid().ToString("N");
-            
+
             // Build redirect URI - use server URL + callback path
             var redirectUri = $"{auth.ServerUrl.TrimEnd('/')}/auth/callback";
-            
+
             // Build required scopes
             var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}");
             var scope = string.Join(" ", requiredScopes);
-            
+
             // Build authorization URL
             var authUrl = $"{azure.Instance}{azure.TenantId}/oauth2/v2.0/authorize" +
                          $"?client_id={Uri.EscapeDataString(azure.ClientId)}" +
@@ -105,7 +105,7 @@ public static class ApplicationBuilderExtensions
                          $"&scope={Uri.EscapeDataString(scope)}" +
                          $"&state={Uri.EscapeDataString(state)}" +
                          $"&response_mode=query";
-            
+
             var response = new
             {
                 authorization_url = authUrl,
@@ -113,7 +113,7 @@ public static class ApplicationBuilderExtensions
                 redirect_uri = redirectUri,
                 expires_in = 600 // URL valid for 10 minutes
             };
-            
+
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(response));
         });
@@ -124,7 +124,7 @@ public static class ApplicationBuilderExtensions
             var code = context.Request.Query["code"];
             var state = context.Request.Query["state"];
             var error = context.Request.Query["error"];
-            
+
             if (!string.IsNullOrEmpty(error))
             {
                 var errorDescription = context.Request.Query["error_description"];
@@ -137,7 +137,7 @@ public static class ApplicationBuilderExtensions
                     </body></html>");
                 return;
             }
-            
+
             if (string.IsNullOrEmpty(code))
             {
                 await context.Response.WriteAsync(@"
@@ -148,7 +148,7 @@ public static class ApplicationBuilderExtensions
                     </body></html>");
                 return;
             }
-            
+
             // Display success page with code for user to copy
             await context.Response.WriteAsync($@"
                 <html><body>
@@ -166,7 +166,7 @@ public static class ApplicationBuilderExtensions
             var httpClient = context.RequestServices.GetRequiredService<HttpClient>();
             var azure = azureOptions.Value;
             var auth = authOptions.Value;
-            
+
             if (string.IsNullOrEmpty(azure.TenantId) || string.IsNullOrEmpty(azure.ClientId))
             {
                 context.Response.StatusCode = 500;
@@ -177,11 +177,11 @@ public static class ApplicationBuilderExtensions
                 }));
                 return;
             }
-            
+
             // Read the request body
             var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
             var tokenRequest = JsonSerializer.Deserialize<Dictionary<string, object>>(body);
-            
+
             if (tokenRequest == null || !tokenRequest.TryGetValue("code", out var codeObj))
             {
                 context.Response.StatusCode = 400;
@@ -192,7 +192,7 @@ public static class ApplicationBuilderExtensions
                 }));
                 return;
             }
-            
+
             var code = codeObj?.ToString();
             if (string.IsNullOrEmpty(code))
             {
@@ -204,14 +204,14 @@ public static class ApplicationBuilderExtensions
                 }));
                 return;
             }
-            
+
             var tokenUrl = $"{azure.Instance}{azure.TenantId}/oauth2/v2.0/token";
             var redirectUri = $"{auth.ServerUrl.TrimEnd('/')}/auth/callback";
-            
+
             // Include the same scope that was used in the authorization request
             var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}");
             var scope = string.Join(" ", requiredScopes);
-            
+
             var tokenBody = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("grant_type", "authorization_code"),
@@ -220,12 +220,12 @@ public static class ApplicationBuilderExtensions
                 new KeyValuePair<string, string>("redirect_uri", redirectUri),
                 new KeyValuePair<string, string>("scope", scope)
             });
-            
+
             try
             {
                 var response = await httpClient.PostAsync(tokenUrl, tokenBody);
                 var responseContent = await response.Content.ReadAsStringAsync();
-                
+
                 context.Response.StatusCode = (int)response.StatusCode;
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync(responseContent);
@@ -249,7 +249,7 @@ public static class ApplicationBuilderExtensions
             var serverUrl = context.Request.Scheme + "://" + context.Request.Host;
             var authorizationServer = $"{azure.Instance}{azure.TenantId}/oauth2/v2.0";
             var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}").ToArray();
-            
+
             var metadata = new
             {
                 resource = serverUrl,
@@ -272,7 +272,7 @@ public static class ApplicationBuilderExtensions
             var serverUrl = context.Request.Scheme + "://" + context.Request.Host;
             var server = $"{azure.Instance}{azure.TenantId}/oauth2/v2.0";
             var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}").ToArray();
-            
+
             var metadata = new
             {
                 issuer = server,
@@ -295,7 +295,7 @@ public static class ApplicationBuilderExtensions
             var auth = authOptions.Value;
             var serverUrl = context.Request.Scheme + "://" + context.Request.Host;
             var requiredScopes = auth.RequiredScopes.Select(s => $"api://{azure.ClientId}/{s}").ToArray();
-            
+
             var registration = new
             {
                 client_id = azure.ClientId,
@@ -313,11 +313,11 @@ public static class ApplicationBuilderExtensions
         appBuilder.MapPost("/auth/sse-url", async (HttpContext context, IOptions<AuthenticationOptions> authOptions) =>
         {
             var auth = authOptions.Value;
-            
+
             // Read the request body for the access token
             var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
             var request = JsonSerializer.Deserialize<Dictionary<string, object>>(body);
-            
+
             if (request == null || !request.TryGetValue("access_token", out var tokenObj))
             {
                 context.Response.StatusCode = 400;
@@ -328,7 +328,7 @@ public static class ApplicationBuilderExtensions
                 }));
                 return;
             }
-            
+
             var accessToken = tokenObj?.ToString();
             if (string.IsNullOrEmpty(accessToken))
             {
@@ -340,16 +340,16 @@ public static class ApplicationBuilderExtensions
                 }));
                 return;
             }
-            
+
             // Generate SSE URL with embedded token
             var sseUrl = $"{auth.ServerUrl.TrimEnd('/')}/?access_token={Uri.EscapeDataString(accessToken)}";
-            
+
             var response = new
             {
                 sse_url = sseUrl,
                 expires_in = 3600 // Token-dependent, but provide a reasonable default
             };
-            
+
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(response));
         });
@@ -363,7 +363,7 @@ public static class ApplicationBuilderExtensions
             try
             {
                 var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
-                
+
                 if (string.IsNullOrWhiteSpace(body))
                 {
                     context.Response.StatusCode = 400;
@@ -382,7 +382,7 @@ public static class ApplicationBuilderExtensions
 
                 using var jsonDoc = JsonDocument.Parse(body);
                 var response = await mcpService.HandleMcpRequestAsync(jsonDoc, context);
-                
+
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync(JsonSerializer.Serialize(response));
             }
@@ -416,7 +416,7 @@ public static class ApplicationBuilderExtensions
                 }));
             }
         });
-        
+
         return app;
     }
 }

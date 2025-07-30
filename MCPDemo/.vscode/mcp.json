@@ -1,46 +1,8 @@
 {
-    "inputs": [
-        {
-            "type": "promptString",
-            "id": "functions-mcp-extension-system-key",
-            "description": "Azure Functions MCP Extension System Key",
-            "password": true
-        },
-        {
-            "type": "promptString",
-            "id": "functionapp-name",
-            "description": "Azure Functions App Name"
-        }
-    ],
     "servers": {
-        "remote-mcp-function": {
-            "type": "sse",
-            "url": "https://${input:functionapp-name}.azurewebsites.net/runtime/webhooks/mcp/sse",
-            "headers": {
-                "x-functions-key": "${input:functions-mcp-extension-system-key}"
-            }
-        },
-        "local-mcp-function": {
-            "type": "sse",
-            "url": "http://localhost:7234/runtime/webhooks/mcp/sse"
-        },
-        "local-mcp-sse": {
-            "type": "sse",
-            "url": "http://localhost:5116"
-        },
         "local-mcp-sse-browser-auth": {
             "type": "http",
             "url": "http://localhost:5116/mcp-custom"
-        },
-        "local-mcp-stdio": {
-            "type": "stdio",
-            "command": "dotnet",
-            "args": [
-                "run",
-                "--project",
-                "C:\\Code\\GitHub\\DemoMCP\\MCPDemo\\MCP.stdio\\MCP.stdio.csproj"
-            ],
-            "env": {}
         }
     }
 }
