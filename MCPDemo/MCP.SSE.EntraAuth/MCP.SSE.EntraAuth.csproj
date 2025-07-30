@@ -5,14 +5,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  
-  <!-- Exclude appsettings files from deployment to Azure -->
-  <ItemGroup Condition="'$(PublishUrl)' != '' OR '$(WebPublishMethod)' != ''">
-    <Content Remove="appsettings.json" />
-    <Content Remove="appsettings.Development.json" />
-    <Content Remove="appsettings.Development.local.json" />
-    <Content Remove="appsettings.Production.json" />
-  </ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.2.0-preview.3" />
 		<PackageReference Include="System.Text.Json" Version="9.0.7" />
@@ -23,5 +15,4 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\MCP.Common\MCP.Common.csproj" />
 	</ItemGroup>
-
 </Project>

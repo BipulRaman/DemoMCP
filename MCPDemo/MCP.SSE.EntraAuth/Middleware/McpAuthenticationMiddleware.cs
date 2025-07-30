@@ -9,8 +9,8 @@ public class McpAuthenticationMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<McpAuthenticationMiddleware> _logger;
-    private readonly AuthenticationOptions _authOptions;
-    private readonly AzureAdOptions _azureAdOptions;
+    private readonly AuthenticationConfig _authOptions;
+    private readonly AzureAdConfig _azureAdOptions;
 
     // Constants for better performance and maintainability
     private static readonly string[] AllowedMethods = { "initialize", "initialized", "ping", "notifications/initialized" };
@@ -26,8 +26,8 @@ public class McpAuthenticationMiddleware
     public McpAuthenticationMiddleware(
         RequestDelegate next,
         ILogger<McpAuthenticationMiddleware> logger,
-        IOptions<AuthenticationOptions> authOptions,
-        IOptions<AzureAdOptions> azureAdOptions)
+        IOptions<AuthenticationConfig> authOptions,
+        IOptions<AzureAdConfig> azureAdOptions)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

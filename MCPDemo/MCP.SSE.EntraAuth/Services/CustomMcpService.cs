@@ -19,7 +19,18 @@ public class CustomMcpService
         try
         {
             var method = request.RootElement.GetProperty("method").GetString();
-            var id = request.RootElement.TryGetProperty("id", out var idElement) ? idElement : JsonDocument.Parse("null").RootElement;
+            var idElement = request.RootElement.TryGetProperty("id", out var tempId) ? tempId : JsonDocument.Parse("null").RootElement;
+            
+            // Convert JsonElement to actual value to avoid disposal issues
+            object? id = idElement.ValueKind switch
+            {
+                JsonValueKind.String => idElement.GetString(),
+                JsonValueKind.Number => idElement.TryGetInt64(out var longVal) ? longVal : idElement.GetDouble(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null => null,
+                _ => null
+            };
 
             _logger.LogInformation("Handling MCP request: {Method}", method);
 
@@ -39,12 +50,24 @@ public class CustomMcpService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling MCP request");
-            var id = request.RootElement.TryGetProperty("id", out var idElement) ? idElement : JsonDocument.Parse("null").RootElement;
+            var idElement = request.RootElement.TryGetProperty("id", out var tempId) ? tempId : JsonDocument.Parse("null").RootElement;
+            
+            // Convert JsonElement to actual value to avoid disposal issues
+            object? id = idElement.ValueKind switch
+            {
+                JsonValueKind.String => idElement.GetString(),
+                JsonValueKind.Number => idElement.TryGetInt64(out var longVal) ? longVal : idElement.GetDouble(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null => null,
+                _ => null
+            };
+            
             return CreateErrorResponse(-32603, "Internal error", id);
         }
     }
 
-    private object HandleInitialize(JsonDocument request, JsonElement id)
+    private object HandleInitialize(JsonDocument request, object? id)
     {
         return new
         {
@@ -68,7 +91,7 @@ public class CustomMcpService
         };
     }
 
-    private object HandleInitialized(JsonElement id)
+    private object HandleInitialized(object? id)
     {
         return new
         {
@@ -78,7 +101,7 @@ public class CustomMcpService
         };
     }
 
-    private Task<object> HandleToolsList(JsonElement id)
+    private Task<object> HandleToolsList(object? id)
     {
         var tools = new object[]
         {
@@ -132,7 +155,7 @@ public class CustomMcpService
         });
     }
 
-    private async Task<object> HandleToolsCall(JsonDocument request, JsonElement id)
+    private async Task<object> HandleToolsCall(JsonDocument request, object? id)
     {
         var paramsElement = request.RootElement.GetProperty("params");
         var toolName = paramsElement.GetProperty("name").GetString();
@@ -191,7 +214,7 @@ public class CustomMcpService
         return new { snippets = snippets.ToArray() };
     }
 
-    private async Task<object> HandleResourcesList(JsonElement id)
+    private async Task<object> HandleResourcesList(object? id)
     {
         var snippetNames = await _snippetService.ListSnippetsAsync();
         var resources = snippetNames.Select(name => new
@@ -210,7 +233,7 @@ public class CustomMcpService
         };
     }
 
-    private async Task<object> HandleResourcesRead(JsonDocument request, JsonElement id)
+    private async Task<object> HandleResourcesRead(JsonDocument request, object? id)
     {
         var paramsElement = request.RootElement.GetProperty("params");
         var uri = paramsElement.GetProperty("uri").GetString();
@@ -250,7 +273,7 @@ public class CustomMcpService
         }
     }
 
-    private Task<object> HandlePromptsList(JsonElement id)
+    private Task<object> HandlePromptsList(object? id)
     {
         var prompts = new[]
         {
@@ -278,7 +301,7 @@ public class CustomMcpService
         });
     }
 
-    private async Task<object> HandlePromptsGet(JsonDocument request, JsonElement id)
+    private async Task<object> HandlePromptsGet(JsonDocument request, object? id)
     {
         var paramsElement = request.RootElement.GetProperty("params");
         var promptName = paramsElement.GetProperty("name").GetString();
@@ -343,7 +366,7 @@ Please provide feedback on:
         return CreateErrorResponse(-32602, "Unknown prompt", id);
     }
 
-    private object CreateErrorResponse(int code, string message, JsonElement id)
+    private object CreateErrorResponse(int code, string message, object? id)
     {
         return new
         {

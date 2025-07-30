@@ -8,8 +8,8 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddMcpAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var azureAdOptions = configuration.GetSection(AzureAdOptions.SectionName).Get<AzureAdOptions>()!;
-        var authOptions = configuration.GetSection(AuthenticationOptions.SectionName).Get<AuthenticationOptions>()!;
+        var azureAdOptions = configuration.GetSection(AzureAdConfig.SectionName).Get<AzureAdConfig>()!;
+        var authOptions = configuration.GetSection(AuthenticationConfig.SectionName).Get<AuthenticationConfig>()!;
 
         var audience = $"api://{azureAdOptions.ClientId}";
 
