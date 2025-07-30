@@ -1,9 +1,9 @@
-name: Build and Deploy Remote MCP Server to Azure Functions
+name: CI-CD -- MCP Azure App Service
 
 on:
   push:
     paths:
-      - 'MCPDemo/MCP.Remote/**'
+      - 'MCPDemo/MCP.SSE.EntraAuth/**'
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
           nuget-packages-${{ runner.os }}-
 
     - name: Build the .NET Web API project
-      run: dotnet build MCPDemo/MCP.Remote/MCP.Remote.csproj
+      run: dotnet build MCPDemo/MCP.SSE.EntraAuth/MCP.SSE.EntraAuth.csproj
 
     - name: Cache build artifacts
       uses: actions/cache@v3
@@ -39,11 +39,11 @@ jobs:
           build-artifacts-${{ runner.os }}-
 
     - name: Publish the .NET App
-      run: dotnet publish MCPDemo/MCP.Remote/MCP.Remote.csproj -c Release -o ./publish
+      run: dotnet publish MCPDemo/MCP.SSE.EntraAuth/MCP.SSE.EntraAuth.csproj -c Release -o ./publish
 
-    - name: Deploy to Azure Functions
+    - name: Deploy to Azure App Service
       uses: azure/webapps-deploy@v2
       with:
         app-name: bipulmcp
-        publish-profile: ${{ secrets.REMOTE_MCP_PUBLISH_PROFILE }} # You need to set this secret in your repository settings
+        publish-profile: ${{ secrets.MCP_API_PUBLISH_PROFILE }} # You need to set this secret in your repository settings
         package: ./publish
