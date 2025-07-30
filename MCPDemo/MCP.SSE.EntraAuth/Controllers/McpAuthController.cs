@@ -15,10 +15,6 @@ public class McpAuthController : ControllerBase
     private readonly McpServerConfig _mcpConfig;
     private readonly HttpClient _httpClient;
     private readonly ILogger<McpAuthController> _logger;
-    private readonly string _authUrl;
-    private readonly string _tokenUrl;
-    private readonly string _redirectUrl;
-    private readonly string _requiredScopes;
 
     public McpAuthController(
         IOptions<AzureAdConfig> azureConfig,
@@ -32,16 +28,6 @@ public class McpAuthController : ControllerBase
         _mcpConfig = mcpConfig.Value;
         _httpClient = httpClient;
         _logger = logger;
-
-        _requiredScopes = string.Join(" ", _authConfig.RequiredScopes.Select(s => $"api://{_azureConfig.ClientId}/{s}"));
-        _redirectUrl = $"{_authConfig.ServerUrl.TrimEnd('/')}/auth/callback";
-        _tokenUrl = $"{_azureConfig.Instance.TrimEnd('/')}/{_azureConfig.TenantId}/oauth2/v2.0/token";
-        _authUrl = $"{_azureConfig.Instance.TrimEnd('/')}/{_azureConfig.TenantId}/oauth2/v2.0/authorize" + 
-            $"?client_id={_azureConfig.ClientId}" +
-                   $"&response_type=code" +
-                   $"&redirect_uri={_redirectUrl}" + // Placeholder, will be set in GetAuthorizationUrl
-                   $"&scope={_requiredScopes}" + // Placeholder, will be set in GetAuthorizationUrl
-                   $"&state={Guid.NewGuid().ToString("N")}";  // Placeholder, will be set in GetAuthorizationUrl
     }
 
     [HttpGet("/health")]
@@ -64,12 +50,12 @@ public class McpAuthController : ControllerBase
                 type = "oauth2",
                 flow = "authorization_code",
                 client_id = _azureConfig.ClientId,
-                authorization_endpoint = _authUrl,
-                token_endpoint = _tokenUrl,
-                scopes = _requiredScopes,
+                authorization_endpoint = _azureConfig.GetAuthorizationEndpoint(),
+                token_endpoint = _azureConfig.GetTokenUrl(),
+                scopes = _authConfig.GetFormattedScopes(_azureConfig.ClientId),
                 instructions = new
                 {
-                    step1 = $"POST to /auth/authorize to get authorization URL (e.g. {_authUrl})",
+                    step1 = $"POST to /auth/authorize to get authorization URL (e.g. {_azureConfig.GetAuthorizationEndpoint()})",
                     step2 = $"Open authorization URL in browser and authenticate, client_id to be used is {_azureConfig.ClientId}",
                     step3 = "Copy authorization code from callback page",
                     step4 = "POST authorization code to /auth/token to get access token",
@@ -86,12 +72,12 @@ public class McpAuthController : ControllerBase
     {
         _logger.LogInformation("Authorization URL requested");
 
-        if (string.IsNullOrEmpty(_azureConfig.TenantId) || string.IsNullOrEmpty(_azureConfig.ClientId))
+        if (!_azureConfig.IsValid())
         {
             return base.StatusCode(500, new
             {
                 error = "configuration_error",
-                error_description = "Azure AD configuration is missing",
+                error_description = "Azure AD configuration has some issue",
                 debug_info = new
                 {
                     tenant_id = _azureConfig.TenantId ?? "null",
@@ -106,12 +92,17 @@ public class McpAuthController : ControllerBase
         var authRequest = string.IsNullOrEmpty(body) ? new Dictionary<string, object>() :
             JsonSerializer.Deserialize<Dictionary<string, object>>(body) ?? new Dictionary<string, object>();
 
-        _logger.LogInformation("Generated auth URL: {AuthUrl}", _authUrl);
+        var authUrl = _azureConfig.GetCompleteAuthorizationUrl(
+            _authConfig.GetRedirectUri(),
+            _authConfig.GetFormattedScopes(_azureConfig.ClientId)
+        );
+
+        _logger.LogInformation("Generated auth URL: {AuthUrl}", authUrl);
 
         var response = new
         {
-            authorization_url = _authUrl,
-            redirect_uri = _redirectUrl,
+            authorization_url = authUrl,
+            redirect_uri = _authConfig.GetRedirectUri(),
             expires_in = 600, // URL valid for 10 minutes
             debug_info = new
             {
@@ -166,7 +157,7 @@ public class McpAuthController : ControllerBase
     [HttpPost("/auth/token")]
     public async Task<IActionResult> ExchangeToken([FromBody] Dictionary<string, object> tokenRequest)
     {
-        if (string.IsNullOrEmpty(_azureConfig.TenantId) || string.IsNullOrEmpty(_azureConfig.ClientId))
+        if (!_azureConfig.IsValid())
         {
             return StatusCode(500, new
             {
@@ -194,12 +185,11 @@ public class McpAuthController : ControllerBase
             });
         }
 
-        var tokenUrl = $"{_azureConfig.Instance.TrimEnd('/')}/{_azureConfig.TenantId}/oauth2/v2.0/token";
-        var redirectUri = $"{_authConfig.ServerUrl.TrimEnd('/')}/auth/callback";
+        var tokenUrl = _azureConfig.GetTokenUrl();
+        var redirectUri = _authConfig.GetRedirectUri();
 
         // Include the same scope that was used in the authorization request
-        var requiredScopes = _authConfig.RequiredScopes.Select(s => $"api://{_azureConfig.ClientId}/{s}");
-        var scope = string.Join(" ", requiredScopes);
+        var scope = _authConfig.GetFormattedScopes(_azureConfig.ClientId);
 
         var tokenBody = new FormUrlEncodedContent(new[]
         {
@@ -252,7 +242,7 @@ public class McpAuthController : ControllerBase
         }
 
         // Generate SSE URL with embedded token
-        var sseUrl = $"{_authConfig.ServerUrl.TrimEnd('/')}/?access_token={Uri.EscapeDataString(accessToken)}";
+        var sseUrl = _authConfig.GetSseUrl(accessToken);
 
         var response = new
         {
@@ -267,16 +257,16 @@ public class McpAuthController : ControllerBase
     public IActionResult Register()
     {
         var serverUrl = $"{Request.Scheme}://{Request.Host}";
-        var requiredScopes = _authConfig.RequiredScopes.Select(s => $"api://{_azureConfig.ClientId}/{s}").ToArray();
+        var requiredScopes = _authConfig.GetFormattedScopes(_azureConfig.ClientId).Split(' ');
 
         var registration = new
         {
             client_id = _azureConfig.ClientId,
             client_secret = "*** Contact administrator ***",
             registration_endpoint = $"{serverUrl}/register",
-            authorization_endpoint = _authUrl,
-            token_endpoint = _tokenUrl,
-            scope = _requiredScopes
+            authorization_endpoint = _azureConfig.GetAuthorizationEndpoint(),
+            token_endpoint = _azureConfig.GetTokenUrl(),
+            scope = _authConfig.GetFormattedScopes(_azureConfig.ClientId)
         };
 
         return Ok(registration);
@@ -286,8 +276,8 @@ public class McpAuthController : ControllerBase
     public IActionResult GetOAuthProtectedResourceMetadata()
     {
         var serverUrl = $"{Request.Scheme}://{Request.Host}";
-        var authorizationServer = $"{_azureConfig.Instance}{_azureConfig.TenantId}/oauth2/v2.0";
-        var requiredScopes = _authConfig.RequiredScopes.Select(s => $"api://{_azureConfig.ClientId}/{s}").ToArray();
+        var authorizationServer = _azureConfig.GetOAuthServerUrl();
+        var requiredScopes = _authConfig.GetFormattedScopes(_azureConfig.ClientId).Split(' ');
 
         var metadata = new
         {
@@ -307,8 +297,8 @@ public class McpAuthController : ControllerBase
     public IActionResult GetOAuthAuthorizationServerMetadata()
     {
         var serverUrl = $"{Request.Scheme}://{Request.Host}";
-        var server = $"{_azureConfig.Instance}{_azureConfig.TenantId}/oauth2/v2.0";
-        var requiredScopes = _authConfig.RequiredScopes.Select(s => $"api://{_azureConfig.ClientId}/{s}").ToArray();
+        var server = _azureConfig.GetOAuthServerUrl();
+        var requiredScopes = _authConfig.GetFormattedScopes(_azureConfig.ClientId).Split(' ');
 
         var metadata = new
         {

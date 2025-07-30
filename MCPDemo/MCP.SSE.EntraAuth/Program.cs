@@ -12,6 +12,26 @@ builder.Services.Configure<AzureAdConfig>(builder.Configuration.GetSection(Azure
 builder.Services.Configure<AuthenticationConfig>(builder.Configuration.GetSection(AuthenticationConfig.SectionName));
 builder.Services.Configure<McpServerConfig>(builder.Configuration.GetSection(McpServerConfig.SectionName));
 
+// Validate configurations at startup
+var azureAdConfig = builder.Configuration.GetSection(AzureAdConfig.SectionName).Get<AzureAdConfig>();
+var authConfig = builder.Configuration.GetSection(AuthenticationConfig.SectionName).Get<AuthenticationConfig>();
+var mcpServerConfig = builder.Configuration.GetSection(McpServerConfig.SectionName).Get<McpServerConfig>();
+
+if (azureAdConfig != null && !azureAdConfig.IsValid())
+{
+    throw new InvalidOperationException("Azure AD configuration is invalid");
+}
+
+if (authConfig != null && !authConfig.IsValid())
+{
+    throw new InvalidOperationException("Authentication configuration is invalid");
+}
+
+if (mcpServerConfig != null && !mcpServerConfig.IsValid())
+{
+    throw new InvalidOperationException("MCP Server configuration is invalid");
+}
+
 // Register blob service with connection string
 var connectionString = builder.Configuration.GetConnectionString("BlobStorage") ?? "UseDevelopmentStorage=true";
 builder.Services.AddSharedServices(connectionString);

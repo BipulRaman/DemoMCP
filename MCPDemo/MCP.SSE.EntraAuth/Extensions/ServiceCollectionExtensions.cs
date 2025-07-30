@@ -11,6 +11,13 @@ public static class ServiceCollectionExtensions
         var azureAdOptions = configuration.GetSection(AzureAdConfig.SectionName).Get<AzureAdConfig>()!;
         var authOptions = configuration.GetSection(AuthenticationConfig.SectionName).Get<AuthenticationConfig>()!;
 
+        // Validate configuration
+        if (!azureAdOptions.IsValid())
+            throw new InvalidOperationException("Azure AD configuration is invalid");
+
+        if (!authOptions.IsValid())
+            throw new InvalidOperationException("Authentication configuration is invalid");
+
         var audience = $"api://{azureAdOptions.ClientId}";
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

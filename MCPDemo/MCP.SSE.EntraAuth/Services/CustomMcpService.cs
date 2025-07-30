@@ -20,7 +20,7 @@ public class CustomMcpService
         {
             var method = request.RootElement.GetProperty("method").GetString();
             var idElement = request.RootElement.TryGetProperty("id", out var tempId) ? tempId : JsonDocument.Parse("null").RootElement;
-            
+
             // Convert JsonElement to actual value to avoid disposal issues
             object? id = idElement.ValueKind switch
             {
@@ -51,7 +51,7 @@ public class CustomMcpService
         {
             _logger.LogError(ex, "Error handling MCP request");
             var idElement = request.RootElement.TryGetProperty("id", out var tempId) ? tempId : JsonDocument.Parse("null").RootElement;
-            
+
             // Convert JsonElement to actual value to avoid disposal issues
             object? id = idElement.ValueKind switch
             {
@@ -62,7 +62,7 @@ public class CustomMcpService
                 JsonValueKind.Null => null,
                 _ => null
             };
-            
+
             return CreateErrorResponse(-32603, "Internal error", id);
         }
     }
