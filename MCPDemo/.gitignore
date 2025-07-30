@@ -8,6 +8,10 @@ local.settings.json
 # dotenv files
 .env
 
+# Appsettings with sensitive data (keep local only)
+appsettings.Development.json
+appsettings.Development.local.json
+
 # User-specific files
 *.rsuser
 *.suo
