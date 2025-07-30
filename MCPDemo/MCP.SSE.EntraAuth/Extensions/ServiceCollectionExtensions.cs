@@ -8,15 +8,21 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddMcpAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var azureAdOptions = configuration.GetSection(AzureAdOptions.SectionName).Get<AzureAdOptions>()!;
-        var authOptions = configuration.GetSection(AuthenticationOptions.SectionName).Get<AuthenticationOptions>()!;
+        var azureAdOptions = configuration.GetSection(AzureAdOptions.SectionName).Get<AzureAdOptions>() ?? new AzureAdOptions();
+        var authOptions = configuration.GetSection(AuthenticationOptions.SectionName).Get<AuthenticationOptions>() ?? new AuthenticationOptions();
+
+        // Validate required configuration
+        if (string.IsNullOrEmpty(azureAdOptions.ClientId) || string.IsNullOrEmpty(azureAdOptions.TenantId))
+        {
+            throw new InvalidOperationException("Azure AD configuration (ClientId and TenantId) is required but missing from configuration.");
+        }
 
         var audience = $"api://{azureAdOptions.ClientId}";
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                options.Authority = $"{azureAdOptions.Instance}{azureAdOptions.TenantId}/v2.0";
+                options.Authority = $"{(azureAdOptions.Instance ?? "https://login.microsoftonline.com/").TrimEnd('/')}/{azureAdOptions.TenantId}/v2.0";
                 options.Audience = audience;
 
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -30,7 +36,7 @@ public static class ServiceCollectionExtensions
                     ValidAudiences = new[] { audience, azureAdOptions.ClientId },
                     ValidIssuers = new[]
                     {
-                        $"{azureAdOptions.Instance}{azureAdOptions.TenantId}/v2.0",
+                        $"{(azureAdOptions.Instance ?? "https://login.microsoftonline.com/").TrimEnd('/')}/{azureAdOptions.TenantId}/v2.0",
                         $"https://sts.windows.net/{azureAdOptions.TenantId}/"
                     }
                 };
@@ -65,7 +71,7 @@ public static class ServiceCollectionExtensions
 
         services.AddAuthorization(options =>
         {
-            options.AddPolicy("McpAccess", policy => policy.RequireRole(authOptions.RequiredRoles));
+            options.AddPolicy("McpAccess", policy => policy.RequireRole(authOptions.RequiredRoles ?? new[] { "MCP.User" }));
         });
 
         return services;
