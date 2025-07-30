@@ -6,6 +6,9 @@ using MCP.HTTP.EntraAuth.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add Application Insights telemetry
+builder.Services.AddApplicationInsightsTelemetry();
+
 // Configure and validate options
 builder.Services.AddConfigs(builder.Configuration);
 
