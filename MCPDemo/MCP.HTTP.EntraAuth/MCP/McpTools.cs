@@ -7,16 +7,16 @@ namespace MCP.HTTP.EntraAuth.MCP;
 /// <summary>
 /// MCP Tools with integrated device code authentication - preserving existing functionality
 /// </summary>
-public class SnippetTools
+public class McpTools
 {
     private readonly ISnippetService _snippetService;
     private readonly IAuthenticationStateService _authService;
-    private readonly ILogger<SnippetTools> _logger;
+    private readonly ILogger<McpTools> _logger;
 
-    public SnippetTools(
+    public McpTools(
         ISnippetService snippetService,
         IAuthenticationStateService authService,
-        ILogger<SnippetTools> logger)
+        ILogger<McpTools> logger)
     {
         _snippetService = snippetService;
         _authService = authService;

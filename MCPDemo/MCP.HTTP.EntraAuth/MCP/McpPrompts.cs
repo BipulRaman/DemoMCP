@@ -7,16 +7,16 @@ namespace MCP.HTTP.EntraAuth.MCP;
 /// <summary>
 /// MCP Prompts for snippet-related prompts with authentication
 /// </summary>
-public class SnippetPrompts
+public class McpPrompts
 {
     private readonly ISnippetService _snippetService;
     private readonly IAuthenticationStateService _authService;
-    private readonly ILogger<SnippetPrompts> _logger;
+    private readonly ILogger<McpPrompts> _logger;
 
-    public SnippetPrompts(
+    public McpPrompts(
         ISnippetService snippetService,
         IAuthenticationStateService authService,
-        ILogger<SnippetPrompts> logger)
+        ILogger<McpPrompts> logger)
     {
         _snippetService = snippetService;
         _authService = authService;

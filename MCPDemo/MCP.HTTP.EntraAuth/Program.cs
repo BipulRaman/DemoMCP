@@ -30,9 +30,9 @@ builder.Services.AddScoped<IMcpConnectService, McpConnectService>();
 // Add native MCP server with authentication-aware components
 builder.Services.AddMcpServer()
     .WithHttpTransport()
-    .WithPrompts<SnippetPrompts>()
-    .WithResources<SnippetResources>()
-    .WithTools<SnippetTools>();
+    .WithPrompts<McpPrompts>()
+    .WithResources<McpResources>()
+    .WithTools<McpTools>();
 
 // Add authentication services
 builder.Services.AddSingleton<IAuthenticationStateService, AuthenticationStateService>();

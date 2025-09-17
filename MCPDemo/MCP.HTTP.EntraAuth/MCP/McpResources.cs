@@ -6,16 +6,16 @@ namespace MCP.HTTP.EntraAuth.MCP;
 /// <summary>
 /// MCP Resources for snippet management with authentication
 /// </summary>
-public class SnippetResources
+public class McpResources
 {
     private readonly ISnippetService _snippetService;
     private readonly IAuthenticationStateService _authService;
-    private readonly ILogger<SnippetResources> _logger;
+    private readonly ILogger<McpResources> _logger;
 
-    public SnippetResources(
+    public McpResources(
         ISnippetService snippetService,
         IAuthenticationStateService authService,
-        ILogger<SnippetResources> logger)
+        ILogger<McpResources> logger)
     {
         _snippetService = snippetService;
         _authService = authService;
