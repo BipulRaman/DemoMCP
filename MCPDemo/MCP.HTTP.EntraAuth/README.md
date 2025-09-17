@@ -27,14 +27,19 @@ After creating the app registration:
 #### Configure Expose an API
 1. Go to **Expose an API**
 2. Set the **Application ID URI** (e.g., `api://your-client-id`)
-3. Add scopes:
-   - **snippets:read**: Read access to code snippets
-   - **snippets:write**: Write access to code snippets
 
 #### Configure API Permissions
 1. Go to **API permissions**
 2. Ensure the application has the following permissions:
    - **Microsoft Graph**: `User.Read` (for basic user information)
+
+#### Enable Public Client Flow
+1. Go to **Authentication**
+2. Scroll down to **Advanced settings**
+3. Under **Allow public client flows**, set **Enable the following mobile and desktop flows** to **Yes**
+4. Click **Save**
+
+> **Important**: This setting is required for device code flow to work properly. Without enabling public client flows, the device code authentication will fail.
 
 ### 3. Update Configuration
 
