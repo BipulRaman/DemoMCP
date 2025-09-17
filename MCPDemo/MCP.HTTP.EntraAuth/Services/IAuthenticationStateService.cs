@@ -1,3 +1,5 @@
+using MCP.HTTP.EntraAuth.Models;
+
 namespace MCP.HTTP.EntraAuth.Services;
 
 /// <summary>
@@ -32,17 +34,4 @@ public interface IAuthenticationStateService
     /// <param name="sessionId">Session ID to check</param>
     /// <returns>True if authenticated, false otherwise</returns>
     Task<bool> IsSessionAuthenticatedAsync(string sessionId);
-}
-
-/// <summary>
-/// Result from device code authentication initiation
-/// </summary>
-public class DeviceCodeResult
-{
-    public string DeviceCode { get; set; } = string.Empty;
-    public string UserCode { get; set; } = string.Empty;
-    public string VerificationUri { get; set; } = string.Empty;
-    public string VerificationUriComplete { get; set; } = string.Empty;
-    public int ExpiresIn { get; set; }
-    public int Interval { get; set; }
 }

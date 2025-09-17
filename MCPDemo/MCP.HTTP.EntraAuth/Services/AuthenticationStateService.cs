@@ -1,7 +1,8 @@
 using MCP.HTTP.EntraAuth.Configuration;
+using MCP.HTTP.EntraAuth.Models;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
-using System.Text;
+using System.Text.Json;
 
 namespace MCP.HTTP.EntraAuth.Services;
 

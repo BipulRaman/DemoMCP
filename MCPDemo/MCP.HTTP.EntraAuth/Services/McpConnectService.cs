@@ -1,5 +1,5 @@
-using MCP.Common.Services;
 using MCP.HTTP.EntraAuth.Services;
+using MCP.HTTP.EntraAuth.Models;
 using System.Text.Json;
 
 namespace MCP.HTTP.EntraAuth.Services;
@@ -307,8 +307,22 @@ public class McpConnectService : IMcpConnectService
         }
 
         var name = arguments.GetProperty("name").GetString();
-        var snippet = await _snippetService.GetSnippetAsync(name!);
-        return $"📄 **Snippet: {name}**\n\n```\n{snippet}\n```";
+        try
+        {
+            var content = await _snippetService.GetSnippetAsync(name!);
+            var snippet = await _snippetService.GetSnippetDetailsAsync(name!);
+            
+            if (snippet == null)
+            {
+                return $"❌ **Snippet Not Found**\n\nSnippet '{name}' does not exist. Use `list_snippets` to see available snippets.";
+            }
+            
+            return $"📄 **Snippet: {snippet.Name}**\n\n**Language:** {snippet.Language}\n\n```{snippet.Language}\n{snippet.Content}\n```";
+        }
+        catch (KeyNotFoundException)
+        {
+            return $"❌ **Snippet Not Found**\n\nSnippet '{name}' does not exist. Use `list_snippets` to see available snippets.";
+        }
     }
 
     private async Task<object> HandleSaveSnippet(JsonElement arguments)
@@ -331,6 +345,7 @@ public class McpConnectService : IMcpConnectService
 
         var name = arguments.GetProperty("name").GetString()!;
         var content = arguments.GetProperty("content").GetString()!;
+        var language = arguments.TryGetProperty("language", out var langElement) ? langElement.GetString() ?? "" : "";
 
         await _snippetService.SaveSnippetAsync(name, content);
         return $"✅ **Snippet Saved**\n\nSnippet '{name}' has been saved successfully!\nUse `get_snippet` to retrieve it or `list_snippets` to see all available snippets.";
@@ -354,32 +369,48 @@ public class McpConnectService : IMcpConnectService
                    "Example: Use your authenticated session ID with this tool.";
         }
 
-        var snippets = await _snippetService.ListSnippetsAsync();
-        if (!snippets.Any())
+        var snippetNames = await _snippetService.ListSnippetsAsync();
+        if (!snippetNames.Any())
         {
             return "📂 **Available Snippets**\n\nNo snippets found. Use `save_snippet` to create your first snippet!";
         }
         
-        var snippetList = string.Join("\n", snippets.Select((snippet, index) => $"{index + 1}. {snippet}"));
-        return $"📂 **Available Snippets** ({snippets.Count()} total)\n\n{snippetList}\n\nUse `get_snippet` with the snippet name to retrieve content.";
+        var snippetList = new List<string>();
+        var index = 1;
+        foreach (var name in snippetNames)
+        {
+            var snippet = await _snippetService.GetSnippetDetailsAsync(name);
+            if (snippet != null)
+            {
+                snippetList.Add($"{index}. **{snippet.Name}** ({snippet.Language})");
+                index++;
+            }
+        }
+        
+        return $"📂 **Available Snippets** ({snippetList.Count} total)\n\n{string.Join("\n", snippetList)}\n\nUse `get_snippet` with the snippet name to retrieve content.";
     }
 
     private async Task<object> HandleResourcesList(object? id)
     {
         var snippetNames = await _snippetService.ListSnippetsAsync();
-        var resources = snippetNames.Select(name => new
+        var resources = new List<object>();
+        
+        foreach (var name in snippetNames)
         {
-            uri = $"snippet://{name}",
-            name = name,
-            description = $"Code snippet: {name}",
-            mimeType = "text/plain"
-        }).ToArray();
+            resources.Add(new
+            {
+                uri = $"snippet://{name}",
+                name = name,
+                description = $"Code snippet: {name}",
+                mimeType = "text/plain"
+            });
+        }
 
         return new
         {
             jsonrpc = "2.0",
             id = id,
-            result = new { resources = resources }
+            result = new { resources = resources.ToArray() }
         };
     }
 

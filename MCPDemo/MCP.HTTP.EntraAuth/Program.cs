@@ -1,6 +1,12 @@
-using MCP.Common;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using ModelContextProtocol.AspNetCore;
 using MCP.HTTP.EntraAuth.Services;
 using MCP.HTTP.EntraAuth.Configuration;
+using MCP.HTTP.EntraAuth.MCP;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,12 +14,25 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<McpServerConfig>(builder.Configuration.GetSection(McpServerConfig.SectionName));
 builder.Services.Configure<AzureAdConfig>(builder.Configuration.GetSection(AzureAdConfig.SectionName));
 
-// Register blob service with connection string
+// Add blob storage services
 var connectionString = builder.Configuration.GetConnectionString("BlobStorage") ?? "UseDevelopmentStorage=true";
-builder.Services.AddSharedServices(connectionString);
+builder.Services.AddSingleton<IAzBlobService>(provider =>
+{
+    var logger = provider.GetRequiredService<ILogger<AzBlobService>>();
+    return new AzBlobService(connectionString, logger);
+});
+builder.Services.AddSingleton<ISnippetService, SnippetService>();
 
 // Add MCP services
+// Keep the custom service for backward compatibility if needed
 builder.Services.AddScoped<IMcpConnectService, McpConnectService>();
+
+// Add native MCP server with authentication-aware components
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithPrompts<SnippetPrompts>()
+    .WithResources<SnippetResources>()
+    .WithTools<SnippetTools>();
 
 // Add authentication services
 builder.Services.AddSingleton<IAuthenticationStateService, AuthenticationStateService>();
@@ -27,7 +46,10 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Map controllers (includes health, capabilities, and mcp-connect endpoints)
+// Map native MCP endpoint (this is the standard MCP server endpoint)
+app.MapMcp("/");
+
+// Map controllers (includes health, capabilities, and custom mcp-connect endpoints for backward compatibility)
 app.MapControllers();
 
 // Log startup information
