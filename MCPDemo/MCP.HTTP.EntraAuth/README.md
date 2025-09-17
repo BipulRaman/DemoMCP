@@ -228,26 +228,9 @@ Configure in your workspace's `.vscode/mcp.json`:
 {
     "inputs": [],
     "servers": {
-        "snippet-manager": {
+        "snippet-manager-mcp": {
             "type": "http",
-            "url": "https://your-domain.com",
-            "headers": {
-                "Authorization": "Bearer your-api-key"
-            }
-        }
-    }
-}
-```
-
-For local development:
-
-```json
-{
-    "inputs": [],
-    "servers": {
-        "snippet-manager-local": {
-            "type": "http",
-            "url": "http://localhost:5120"
+            "url": "http://localhost:5120/mcp"
         }
     }
 }
