@@ -7,7 +7,7 @@ using System.Text.Json;
 namespace MCP.HTTP.EntraAuth.Services;
 
 /// <summary>
-/// Implementation of device code authentication state management
+/// Implementation of device code authentication state management - returns Entra ID tokens directly
 /// </summary>
 public class AuthenticationStateService : IAuthenticationStateService
 {
@@ -134,22 +134,33 @@ public class AuthenticationStateService : IAuthenticationStateService
         }
     }
 
-    public async Task<string?> GetAccessTokenAsync(string sessionId)
+    public Task<string?> GetAccessTokenAsync(string sessionId)
     {
         if (_sessions.TryGetValue(sessionId, out var session) && session.IsComplete)
         {
-            return session.AccessToken;
+            return Task.FromResult<string?>(session.AccessToken);
         }
-        return null;
+        return Task.FromResult<string?>(null);
     }
 
-    public async Task<bool> IsSessionAuthenticatedAsync(string sessionId)
+    public Task<bool> IsSessionAuthenticatedAsync(string sessionId)
     {
         if (_sessions.TryGetValue(sessionId, out var session))
         {
-            return session.IsComplete && !string.IsNullOrEmpty(session.AccessToken);
+            return Task.FromResult(session.IsComplete && !string.IsNullOrEmpty(session.AccessToken));
         }
-        return false;
+        return Task.FromResult(false);
+    }
+
+    public Task<string?> GetJwtTokenAsync(string sessionId)
+    {
+        if (_sessions.TryGetValue(sessionId, out var session) && session.IsComplete && !string.IsNullOrEmpty(session.AccessToken))
+        {
+            // Return the Entra ID access token directly (it's already a JWT)
+            _logger.LogInformation("Entra ID access token retrieved for session {SessionId}", sessionId);
+            return Task.FromResult<string?>(session.AccessToken);
+        }
+        return Task.FromResult<string?>(null);
     }
 
     private DeviceCodeResult ParseDeviceCodeResponse(string response)

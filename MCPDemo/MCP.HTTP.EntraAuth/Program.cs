@@ -3,10 +3,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using ModelContextProtocol.AspNetCore;
 using MCP.HTTP.EntraAuth.Services;
 using MCP.HTTP.EntraAuth.Configuration;
 using MCP.HTTP.EntraAuth.MCP;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +40,25 @@ builder.Services.AddMcpServer()
 // Add authentication services
 builder.Services.AddSingleton<IAuthenticationStateService, AuthenticationStateService>();
 
+// Add Entra ID JWT Bearer Authentication (native Azure AD tokens)
+var azureAdConfig = builder.Configuration.GetSection("AzureAd");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = $"{azureAdConfig["Instance"]}{azureAdConfig["TenantId"]}/v2.0";
+        options.Audience = azureAdConfig["ClientId"];
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 // Add common services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
@@ -45,6 +67,10 @@ builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+
+// Add Authentication and Authorization middleware (native .NET approach)
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Map native MCP endpoint (this is the standard MCP server endpoint)
 app.MapMcp("/");

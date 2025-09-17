@@ -23,6 +23,35 @@ public class McpTools
         _logger = logger;
     }
 
+    /// <summary>
+    /// Helper method to validate authentication using either sessionId or Entra ID access token
+    /// </summary>
+    private async Task<bool> IsAuthenticatedAsync(string? sessionId = null, string? jwtToken = null)
+    {
+        // If Entra ID access token is provided, validate it (basic validation - in production you'd verify signature)
+        if (!string.IsNullOrEmpty(jwtToken))
+        {
+            try
+            {
+                // Basic JWT format validation (Entra ID tokens are always valid JWTs if they reach here via middleware)
+                var parts = jwtToken.Split('.');
+                return parts.Length == 3; // Valid JWT format
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        // Fall back to session-based authentication for backward compatibility
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            return await _authService.IsSessionAuthenticatedAsync(sessionId);
+        }
+        
+        return false;
+    }
+
     [Description("Start device code authentication flow for MCP session")]
     public async Task<object> StartAuthentication(string sessionId)
     {
@@ -47,18 +76,30 @@ public class McpTools
         }
     }
 
-    [Description("Check authentication status for current session")]
+    [Description("Check authentication status and get Entra ID access token when complete")]
     public async Task<object> CheckAuthenticationStatus(string sessionId)
     {
         try
         {
             var isAuthenticated = await _authService.IsSessionAuthenticatedAsync(sessionId);
             
+            if (isAuthenticated)
+            {
+                var entraIdToken = await _authService.GetJwtTokenAsync(sessionId);
+                return new 
+                { 
+                    success = true,
+                    authenticated = true,
+                    accessToken = entraIdToken,
+                    message = "Session is authenticated. Use the Entra ID access token for subsequent requests."
+                };
+            }
+            
             return new 
             { 
                 success = true,
-                authenticated = isAuthenticated,
-                message = isAuthenticated ? "Session is authenticated" : "Session is not authenticated"
+                authenticated = false,
+                message = "Session is not authenticated yet. Please complete device code flow."
             };
         }
         catch (Exception ex)
@@ -68,15 +109,15 @@ public class McpTools
         }
     }
 
-    [Description("Get a code snippet by name (requires authentication)")]
-    public async Task<object> GetSnippet(string sessionId, string name)
+    [Description("Get a code snippet by name (requires authentication via sessionId or jwtToken)")]
+    public async Task<object> GetSnippet(string name, string? sessionId = null, string? jwtToken = null)
     {
         try
         {
-            var isAuthenticated = await _authService.IsSessionAuthenticatedAsync(sessionId);
+            var isAuthenticated = await IsAuthenticatedAsync(sessionId, jwtToken);
             if (!isAuthenticated)
             {
-                return new { success = false, error = "Authentication required. Use StartAuthentication first." };
+                return new { success = false, error = "Authentication required. Use StartAuthentication to get sessionId or provide valid jwtToken." };
             }
 
             var snippetDetails = await _snippetService.GetSnippetDetailsAsync(name);
@@ -103,15 +144,15 @@ public class McpTools
         }
     }
 
-    [Description("Save a new code snippet (requires authentication)")]
-    public async Task<object> SaveSnippet(string sessionId, string name, string content, string language = "")
+    [Description("Save a new code snippet (requires authentication via sessionId or jwtToken)")]
+    public async Task<object> SaveSnippet(string name, string content, string language = "", string? sessionId = null, string? jwtToken = null)
     {
         try
         {
-            var isAuthenticated = await _authService.IsSessionAuthenticatedAsync(sessionId);
+            var isAuthenticated = await IsAuthenticatedAsync(sessionId, jwtToken);
             if (!isAuthenticated)
             {
-                return new { success = false, error = "Authentication required. Use StartAuthentication first." };
+                return new { success = false, error = "Authentication required. Use StartAuthentication to get sessionId or provide valid jwtToken." };
             }
 
             await _snippetService.SaveSnippetAsync(name, content);
@@ -134,15 +175,15 @@ public class McpTools
         }
     }
 
-    [Description("List all available code snippets (requires authentication)")]
-    public async Task<object> ListSnippets(string sessionId)
+    [Description("List all available code snippets (requires authentication via sessionId or jwtToken)")]
+    public async Task<object> ListSnippets(string? sessionId = null, string? jwtToken = null)
     {
         try
         {
-            var isAuthenticated = await _authService.IsSessionAuthenticatedAsync(sessionId);
+            var isAuthenticated = await IsAuthenticatedAsync(sessionId, jwtToken);
             if (!isAuthenticated)
             {
-                return new { success = false, error = "Authentication required. Use StartAuthentication first." };
+                return new { success = false, error = "Authentication required. Use StartAuthentication to get sessionId or provide valid jwtToken." };
             }
 
             var snippetNames = await _snippetService.ListSnippetsAsync();

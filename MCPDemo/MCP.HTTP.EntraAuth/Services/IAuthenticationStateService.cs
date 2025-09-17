@@ -34,4 +34,11 @@ public interface IAuthenticationStateService
     /// <param name="sessionId">Session ID to check</param>
     /// <returns>True if authenticated, false otherwise</returns>
     Task<bool> IsSessionAuthenticatedAsync(string sessionId);
+
+    /// <summary>
+    /// Gets the Entra ID access token (JWT) for a completed authentication session
+    /// </summary>
+    /// <param name="sessionId">Session ID</param>
+    /// <returns>Entra ID access token (JWT) if available, null otherwise</returns>
+    Task<string?> GetJwtTokenAsync(string sessionId);
 }

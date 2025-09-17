@@ -1,10 +1,10 @@
-# MCP.SSE - Model Context Protocol Web API Server with Entra ID Authentication
+# MCP.HTTP.EntraAuth - Model Context Protocol Web API Server with Entra ID Authentication
 
-> A production-ready ASP.NET Core Web API based Model Context Protocol (MCP) server implementation for web-hosted AI assistant integration with snippet management capabilities using Server-Sent Events (SSE) and Microsoft Entra ID authentication.
+> A production-ready ASP.NET Core Web API based Model Context Protocol (MCP) server implementation for web-hosted AI assistant integration with snippet management capabilities using HTTP transport and Microsoft Entra ID device code authentication.
 
 ## 🔐 Authentication Setup
 
-This server uses Microsoft Entra ID (Azure AD) for authentication. Follow these steps to configure it:
+This server uses Microsoft Entra ID (Azure AD) device code flow for authentication. Follow these steps to configure it:
 
 ### 1. Create an Entra ID App Registration
 
@@ -12,9 +12,9 @@ This server uses Microsoft Entra ID (Azure AD) for authentication. Follow these 
 2. Navigate to **Azure Active Directory** > **App registrations**
 3. Click **New registration**
 4. Configure the application:
-   - **Name**: `MCP.SSE Server`
+   - **Name**: `MCP.HTTP.EntraAuth Server`
    - **Supported account types**: Choose based on your requirements
-   - **Redirect URI**: Leave blank for now
+   - **Redirect URI**: Leave blank (not needed for device code flow)
 5. Click **Register**
 
 ### 2. Configure the App Registration
@@ -28,14 +28,13 @@ After creating the app registration:
 1. Go to **Expose an API**
 2. Set the **Application ID URI** (e.g., `api://your-client-id`)
 3. Add scopes:
-   - **mcp:tools**: Access to MCP tools
-   - **mcp:resources**: Access to MCP resources
+   - **snippets:read**: Read access to code snippets
+   - **snippets:write**: Write access to code snippets
 
-#### Configure App Roles (Optional)
-1. Go to **App roles**
-2. Create roles such as:
-   - **MCP.User**: Basic access to MCP services
-   - **MCP.Admin**: Administrative access to MCP services
+#### Configure API Permissions
+1. Go to **API permissions**
+2. Ensure the application has the following permissions:
+   - **Microsoft Graph**: `User.Read` (for basic user information)
 
 ### 3. Update Configuration
 
@@ -45,23 +44,18 @@ Update your `appsettings.json` file:
 {
   "AzureAd": {
     "Instance": "https://login.microsoftonline.com/",
-    "Domain": "your-domain.onmicrosoft.com",
-    "TenantId": "your-tenant-id",
-    "ClientId": "your-client-id",
-    "Audience": "api://your-client-id"
+    "TenantId": "<<YOUR_TENANT_ID>>",
+    "ClientId": "<<YOUR_CLIENT_ID>>"
   },
-  "Authentication": {
-    "ServerUrl": "http://localhost:5000/",
-    "RequiredScopes": ["mcp:tools", "mcp:resources"],
-    "RequiredRoles": ["MCP.User"]
+  "ConnectionStrings": {
+    "BlobStorage": "UseDevelopmentStorage=true"
   }
 }
 ```
 
 Replace the placeholders:
-- `your-domain`: Your Azure AD domain
-- `your-tenant-id`: The Directory (tenant) ID
-- `your-client-id`: The Application (client) ID
+- `<<YOUR_TENANT_ID>>`: The Directory (tenant) ID from your app registration
+- `<<YOUR_CLIENT_ID>>`: The Application (client) ID from your app registration
 
 ## 📋 Table of Contents
 
@@ -73,28 +67,28 @@ Replace the placeholders:
 
 ## 🌟 Introduction
 
-The **MCP.SSE** server is a web-native implementation of the Model Context Protocol (MCP) specification using ASP.NET Core Web API with HTTP transport and Server-Sent Events. Built on .NET 9.0 with the official Microsoft MCP SDK for ASP.NET Core, it provides scalable, web-hosted integration with AI assistants like Claude Desktop, VS Code with GitHub Copilot, and other MCP-enabled applications.
+The **MCP.HTTP.EntraAuth** server is a native implementation of the Model Context Protocol (MCP) specification using ASP.NET Core with HTTP transport and device code authentication. Built on .NET 9.0 with the official Microsoft MCP SDK for ASP.NET Core, it provides secure, web-hosted integration with AI assistants like Claude Desktop, VS Code with GitHub Copilot, and other MCP-enabled applications.
 
 ## 🏗️ Architecture
 
-The MCP.SSE server follows a modern web API architecture optimized for HTTP transport and SSE streaming:
+The MCP.HTTP.EntraAuth server follows a modern web API architecture optimized for HTTP transport with device code authentication:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   MCP.SSE Server                                           │
+│                                MCP.HTTP.EntraAuth Server                                   │
 ├────────────────────────────────────────────────────────────────────────────────────────────┤
 │  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────────────┐      │
 │  │        Tools         │  │      Services        │  │           Models             │      │
 │  │                      │  │                      │  │                              │      │
-│  │  SnippetTools        │◄─┤  SnippetService      │  │        Snippet               │      │
-│  │  [McpServerTool]     │  │  AzBlobService       │  │        [JsonCtx]             │      │
+│  │  McpTools            │◄─┤  SnippetService      │  │        Snippet               │      │
+│  │  [McpServerTool]     │  │  AzBlobService       │  │        DeviceCodeResult      │      │
+│  │                      │  │  AuthStateService    │  │                              │      │
 │  │                      │  │    [Singleton]       │  │                              │      │
-│  │                      │  │                      │  │                              │      │
 │  └──────────────────────┘  └──────────────────────┘  └──────────────────────────────┘      │
 ├────────────────────────────────────────────────────────────────────────────────────────────┤
 │                         ASP.NET Core Web API & HTTP Transport                              │
 │  ┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐            │
-│  │   HTTP Host   │→──│  MCP Routing  │→──│   JSON-RPC    │→──│      SSE      │            │
+│  │   HTTP Host   │→──│  MCP Routing  │→──│   JSON-RPC    │→──│ Device Code   │            │
 │  └───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘            │
 ├────────────────────────────────────────────────────────────────────────────────────────────┤
 │                                      Data Layer                                            │
@@ -107,18 +101,18 @@ The MCP.SSE server follows a modern web API architecture optimized for HTTP tran
 
 ## 🔄 Data Flow
 
-### HTTP MCP Request Flow with SSE
+### HTTP MCP Request Flow with Device Code Authentication
 
 ```mermaid
 sequenceDiagram
     participant AI as AI Assistant
     participant HTTP as HTTP Transport
     participant API as MCP Web API
-    participant ST as SnippetTools
+    participant ST as McpTools
     participant SS as SnippetService
     participant ABS as Azure Blob Storage
 
-    AI->>HTTP: MCP Request (HTTP/SSE)
+    AI->>HTTP: MCP Request (HTTP)
     HTTP->>API: Route to Endpoint
     API->>ST: Invoke Tool Method
     ST->>SS: Business Logic Call
@@ -127,15 +121,62 @@ sequenceDiagram
     SS-->>ST: Return Result
     ST-->>API: Serialized Response
     API->>HTTP: MCP Response
-    HTTP->>AI: JSON/SSE Response
+    HTTP->>AI: JSON Response
 ```
 
 ## 🛠️ Available Tools
 
+### Authentication Tools
+- **start_authentication**: Start Entra ID device code authentication flow
+- **check_authentication_status**: Check if device code authentication is complete and get Entra ID access token
+- **get_connection**: Get authenticated MCP connection details
+
 ### Snippet Management Tools
-- **save_snippet**: Save code snippets to Azure Blob Storage
-- **get_snippets**: Retrieve saved code snippets by name
-- **hello**: Simple hello world tool for testing
+- **save_snippet**: Save code snippets to Azure Blob Storage with authentication
+- **get_snippet**: Retrieve saved code snippets by name
+- **list_snippets**: List all available code snippets
+- **delete_snippet**: Delete a specific code snippet
+
+## 🔑 Authentication Flow
+
+This server implements a dual authentication approach for maximum flexibility:
+
+### 1. Session-based Authentication (Backward Compatible)
+- Use `start_authentication` to initiate device code flow
+- Poll `check_authentication_status` until authentication completes
+- Pass `sessionId` parameter to subsequent tool calls
+
+### 2. Direct Token Authentication (Recommended)
+- Complete the device code flow to obtain an Entra ID access token
+- The `check_authentication_status` tool returns the Entra ID access token directly
+- Pass `jwtToken` parameter (Entra ID access token) to subsequent tool calls
+
+### Token Details
+- **Entra ID Access Tokens**: The server returns Microsoft Entra ID access tokens in JWT format
+- **Native JWT Validation**: Uses ASP.NET Core's built-in JWT Bearer authentication
+- **No Custom Wrapping**: Entra ID tokens are used directly without additional JWT layers
+- **Security**: Tokens are validated against the configured Entra ID authority and audience
+
+### Example Authentication Flow
+```javascript
+// 1. Start authentication
+const authResponse = await client.callTool("start_authentication");
+console.log(authResponse.deviceCodeUrl); // Visit URL and enter code
+
+// 2. Poll for completion
+let statusResponse;
+do {
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+    statusResponse = await client.callTool("check_authentication_status", {
+        sessionId: authResponse.sessionId
+    });
+} while (!statusResponse.authenticated);
+
+// 3. Use the Entra ID access token for subsequent calls
+const snippets = await client.callTool("list_snippets", {
+    jwtToken: statusResponse.accessToken // This is the Entra ID JWT token
+});
+```
 
 ## Running the Server
 
@@ -147,13 +188,12 @@ sequenceDiagram
 
 #### Command Line Execution
 ```bash
-cd MCP.SSE
+cd MCP.HTTP.EntraAuth
 dotnet run
 ```
 
 The server will start and be available at:
-- HTTP: `http://localhost:5116`
-- HTTPS: `https://localhost:7095`
+- HTTP: `http://localhost:5120`
 
 #### Using Visual Studio Code
 1. Open the project in VS Code
@@ -162,7 +202,7 @@ The server will start and be available at:
 
 #### Using Visual Studio
 1. Open the solution file
-2. Set MCP.SSE as the startup project
+2. Set MCP.HTTP.EntraAuth as the startup project
 3. Press F5 or Ctrl+F5 to run
 
 ### Production Deployment
@@ -183,8 +223,8 @@ Configure in your workspace's `.vscode/mcp.json`:
 {
     "inputs": [],
     "servers": {
-        "snippet-manager-sse": {
-            "type": "sse",
+        "snippet-manager": {
+            "type": "http",
             "url": "https://your-domain.com",
             "headers": {
                 "Authorization": "Bearer your-api-key"
@@ -201,8 +241,8 @@ For local development:
     "inputs": [],
     "servers": {
         "snippet-manager-local": {
-            "type": "sse",
-            "url": "http://localhost:5116"
+            "type": "http",
+            "url": "http://localhost:5120"
         }
     }
 }
@@ -219,16 +259,23 @@ For local development:
       "Microsoft.AspNetCore": "Warning"
     }
   },
-  "AllowedHosts": "*",
   "ConnectionStrings": {
-    "BlobStorage": "your-azure-blob-storage-connection-string"
-  }
+    "BlobStorage": "UseDevelopmentStorage=true"
+  },
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "TenantId": "<<YOUR_TENANT_ID>>",
+    "ClientId": "<<YOUR_CLIENT_ID>>"
+  },
+  "APPLICATIONINSIGHTS_CONNECTION_STRING": ""
 }
 ```
 
 ### Required Configuration
 - **BlobStorage**: Azure Blob Storage connection string for snippet persistence
-- **AllowedHosts**: Configure allowed hosts for production deployment
+- **AzureAd**: Microsoft Entra ID configuration for device code authentication
+- **TenantId**: Your Azure AD tenant ID
+- **ClientId**: Your Azure AD application (client) ID
 
 ### Development Storage
 For local development, you can use:
