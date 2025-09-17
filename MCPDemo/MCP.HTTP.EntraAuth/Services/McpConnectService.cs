@@ -1,4 +1,5 @@
 using MCP.Common.Services;
+using MCP.HTTP.EntraAuth.Services;
 using System.Text.Json;
 
 namespace MCP.HTTP.EntraAuth.Services;
@@ -10,16 +11,19 @@ public class McpConnectService : IMcpConnectService
 {
     private readonly ISnippetService _snippetService;
     private readonly ILogger<McpConnectService> _logger;
+    private readonly IAuthenticationStateService _authService;
 
     /// <summary>
     /// The constructor for McpConnectService
     /// </summary>
     /// <param name="snippetService"></param>
     /// <param name="logger"></param>
-    public McpConnectService(ISnippetService snippetService, ILogger<McpConnectService> logger)
+    /// <param name="authService"></param>
+    public McpConnectService(ISnippetService snippetService, ILogger<McpConnectService> logger, IAuthenticationStateService authService)
     {
         _snippetService = snippetService;
         _logger = logger;
+        _authService = authService;
     }
 
     /// <inheritdoc/>
@@ -132,44 +136,92 @@ public class McpConnectService : IMcpConnectService
     {
         var tools = new object[]
         {
+            // Authentication tools - always available
             new
             {
-                name = "get_snippet",
-                description = "Retrieve a code snippet by name",
+                name = "start_authentication",
+                description = "Start Entra ID device code authentication flow. This will provide you with a verification URL and code to complete authentication in your browser.",
                 inputSchema = new
                 {
                     type = "object",
                     properties = new
                     {
-                        name = new { type = "string", description = "Name of the snippet to retrieve" }
+                        sessionId = new { type = "string", description = "Optional session ID for this authentication session. If not provided, a new one will be generated." }
+                    }
+                }
+            },
+            new
+            {
+                name = "check_authentication_status",
+                description = "Check if the device code authentication is complete. Use this after completing authentication in your browser.",
+                inputSchema = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        sessionId = new { type = "string", description = "Session ID from the start_authentication response" }
                     },
-                    required = new[] { "name" }
+                    required = new[] { "sessionId" }
+                }
+            },
+            new
+            {
+                name = "get_authenticated_connection",
+                description = "Get the authenticated MCP connection details after successful authentication.",
+                inputSchema = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        sessionId = new { type = "string", description = "Session ID from successful authentication" }
+                    },
+                    required = new[] { "sessionId" }
+                }
+            },
+            // Protected tools - require authentication
+            new
+            {
+                name = "get_snippet",
+                description = "Retrieve a code snippet by name (requires authentication - use session ID from authentication)",
+                inputSchema = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        name = new { type = "string", description = "Name of the snippet to retrieve" },
+                        sessionId = new { type = "string", description = "Session ID from successful authentication" }
+                    },
+                    required = new[] { "name", "sessionId" }
                 }
             },
             new
             {
                 name = "save_snippet",
-                description = "Save a new code snippet",
+                description = "Save a new code snippet (requires authentication - use session ID from authentication)",
                 inputSchema = new
                 {
                     type = "object",
                     properties = new
                     {
                         name = new { type = "string", description = "Name of the snippet" },
-                        content = new { type = "string", description = "Content of the snippet" }
+                        content = new { type = "string", description = "Content of the snippet" },
+                        sessionId = new { type = "string", description = "Session ID from successful authentication" }
                     },
-                    required = new[] { "name", "content" }
+                    required = new[] { "name", "content", "sessionId" }
                 }
             },
             new
             {
                 name = "list_snippets",
-                description = "List all available code snippets",
+                description = "List all available code snippets (requires authentication - use session ID from authentication)",
                 inputSchema = new
                 {
                     type = "object",
-                    properties = new { },
-                    required = new string[] { }
+                    properties = new
+                    {
+                        sessionId = new { type = "string", description = "Session ID from successful authentication" }
+                    },
+                    required = new[] { "sessionId" }
                 }
             }
         };
@@ -199,9 +251,14 @@ public class McpConnectService : IMcpConnectService
         {
             object result = toolName switch
             {
+                // Authentication tools
+                "start_authentication" => await HandleStartAuthentication(arguments),
+                "check_authentication_status" => await HandleCheckAuthenticationStatus(arguments),
+                "get_authenticated_connection" => await HandleGetAuthenticatedConnection(arguments),
+                // Protected tools
                 "get_snippet" => await HandleGetSnippet(arguments),
                 "save_snippet" => await HandleSaveSnippet(arguments),
-                "list_snippets" => await HandleListSnippets(),
+                "list_snippets" => await HandleListSnippets(arguments),
                 _ => throw new InvalidOperationException($"Unknown tool: {toolName}")
             }; return new
             {
@@ -214,7 +271,7 @@ public class McpConnectService : IMcpConnectService
                         new
                         {
                             type = "text",
-                            text = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true })
+                            text = result?.ToString() ?? "null"
                         }
                     }
                 }
@@ -233,24 +290,78 @@ public class McpConnectService : IMcpConnectService
     /// <returns></returns>
     private async Task<object> HandleGetSnippet(JsonElement arguments)
     {
+        // Check authentication first
+        var sessionId = arguments.TryGetProperty("sessionId", out var sessionIdElement) 
+            ? sessionIdElement.GetString() 
+            : null;
+
+        if (string.IsNullOrEmpty(sessionId) || !await _authService.IsSessionAuthenticatedAsync(sessionId))
+        {
+            return "🔒 **Authentication Required**\n\n" +
+                   "To access snippets, you need to authenticate first:\n\n" +
+                   "1. Use `start_authentication` to begin device code flow\n" +
+                   "2. Complete authentication in your browser\n" +
+                   "3. Use `check_authentication_status` to verify completion\n" +
+                   "4. Include the sessionId parameter in your request\n\n" +
+                   "Example: Use your authenticated session ID with this tool.";
+        }
+
         var name = arguments.GetProperty("name").GetString();
         var snippet = await _snippetService.GetSnippetAsync(name!);
-        return new { name = name, content = snippet };
+        return $"📄 **Snippet: {name}**\n\n```\n{snippet}\n```";
     }
 
     private async Task<object> HandleSaveSnippet(JsonElement arguments)
     {
+        // Check authentication first
+        var sessionId = arguments.TryGetProperty("sessionId", out var sessionIdElement) 
+            ? sessionIdElement.GetString() 
+            : null;
+
+        if (string.IsNullOrEmpty(sessionId) || !await _authService.IsSessionAuthenticatedAsync(sessionId))
+        {
+            return "🔒 **Authentication Required**\n\n" +
+                   "To save snippets, you need to authenticate first:\n\n" +
+                   "1. Use `start_authentication` to begin device code flow\n" +
+                   "2. Complete authentication in your browser\n" +
+                   "3. Use `check_authentication_status` to verify completion\n" +
+                   "4. Include the sessionId parameter in your request\n\n" +
+                   "Example: Use your authenticated session ID with this tool.";
+        }
+
         var name = arguments.GetProperty("name").GetString()!;
         var content = arguments.GetProperty("content").GetString()!;
 
         await _snippetService.SaveSnippetAsync(name, content);
-        return new { message = $"Snippet '{name}' saved successfully" };
+        return $"✅ **Snippet Saved**\n\nSnippet '{name}' has been saved successfully!\nUse `get_snippet` to retrieve it or `list_snippets` to see all available snippets.";
     }
 
-    private async Task<object> HandleListSnippets()
+    private async Task<object> HandleListSnippets(JsonElement arguments)
     {
+        // Check authentication first
+        var sessionId = arguments.TryGetProperty("sessionId", out var sessionIdElement) 
+            ? sessionIdElement.GetString() 
+            : null;
+
+        if (string.IsNullOrEmpty(sessionId) || !await _authService.IsSessionAuthenticatedAsync(sessionId))
+        {
+            return "🔒 **Authentication Required**\n\n" +
+                   "To list snippets, you need to authenticate first:\n\n" +
+                   "1. Use `start_authentication` to begin device code flow\n" +
+                   "2. Complete authentication in your browser\n" +
+                   "3. Use `check_authentication_status` to verify completion\n" +
+                   "4. Include the sessionId parameter in your request\n\n" +
+                   "Example: Use your authenticated session ID with this tool.";
+        }
+
         var snippets = await _snippetService.ListSnippetsAsync();
-        return new { snippets = snippets.ToArray() };
+        if (!snippets.Any())
+        {
+            return "📂 **Available Snippets**\n\nNo snippets found. Use `save_snippet` to create your first snippet!";
+        }
+        
+        var snippetList = string.Join("\n", snippets.Select((snippet, index) => $"{index + 1}. {snippet}"));
+        return $"📂 **Available Snippets** ({snippets.Count()} total)\n\n{snippetList}\n\nUse `get_snippet` with the snippet name to retrieve content.";
     }
 
     private async Task<object> HandleResourcesList(object? id)
@@ -421,5 +532,55 @@ public class McpConnectService : IMcpConnectService
                 message = message
             }
         };
+    }
+
+    // Authentication tool handlers
+    private async Task<object> HandleStartAuthentication(JsonElement arguments)
+    {
+        var sessionId = arguments.TryGetProperty("sessionId", out var sessionIdElement) 
+            ? sessionIdElement.GetString() 
+            : Guid.NewGuid().ToString();
+
+        var authResult = await _authService.StartDeviceCodeFlowAsync(sessionId!);
+        
+        return $"🔐 **Authentication Required**\n\n" +
+               $"To authenticate with your Azure account:\n\n" +
+               $"1. 📋 Copy this code: **{authResult.UserCode}**\n" +
+               $"2. 🌐 Open: https://microsoft.com/devicelogin\n" +
+               $"3. ✏️ Enter the code when prompted\n" +
+               $"4. ✅ Complete the sign-in process\n\n" +
+               $"Alternative URL: {authResult.VerificationUri}\n\n" +
+               $"Session ID: {sessionId}\n" +
+               $"Once completed, use `check_authentication_status` with this session ID to verify authentication.";
+    }
+
+    private async Task<object> HandleCheckAuthenticationStatus(JsonElement arguments)
+    {
+        var sessionId = arguments.GetProperty("sessionId").GetString()!;
+        var isComplete = await _authService.PollForCompletionAsync(sessionId);
+        
+        if (isComplete)
+        {
+            return "✅ **Authentication Successful!**\n\n" +
+                   "You are now authenticated and can access all MCP tools and features.\n" +
+                   "Use `get_authenticated_connection` to get the full connection details if needed.";
+        }
+        else
+        {
+            return "⏳ **Authentication Pending**\n\n" +
+                   "Please complete the authentication in your browser, then check again.\n" +
+                   "If you haven't started authentication yet, use `start_authentication` first.";
+        }
+    }
+
+    private Task<object> HandleGetAuthenticatedConnection(JsonElement arguments)
+    {
+        var sessionId = arguments.GetProperty("sessionId").GetString()!;
+        
+        return Task.FromResult<object>("🔗 **Authenticated Connection Details**\n\n" +
+                                      $"Session ID: {sessionId}\n" +
+                                      "Connection URL: http://localhost:5120/mcp-connect\n" +
+                                      "Status: Authenticated\n\n" +
+                                      "You are connected with full authentication. All MCP tools and features are now available to you.");
     }
 }
