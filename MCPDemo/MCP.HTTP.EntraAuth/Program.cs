@@ -14,7 +14,6 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure options
-builder.Services.Configure<McpServerConfig>(builder.Configuration.GetSection(McpServerConfig.SectionName));
 builder.Services.Configure<AzureAdConfig>(builder.Configuration.GetSection(AzureAdConfig.SectionName));
 
 // Add blob storage services

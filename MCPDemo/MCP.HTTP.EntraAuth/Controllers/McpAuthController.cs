@@ -1,7 +1,5 @@
-using MCP.HTTP.EntraAuth.Configuration;
 using MCP.HTTP.EntraAuth.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace MCP.HTTP.EntraAuth.Controllers;
@@ -12,19 +10,14 @@ namespace MCP.HTTP.EntraAuth.Controllers;
 [ApiController]
 public class McpAuthController : ControllerBase
 {
-    private readonly McpServerConfig _mcpConfig;
     private readonly ILogger<McpAuthController> _logger;
 
     /// <summary>
-    /// The constructor initializes the controller with necessary configurations and services.
+    /// The constructor initializes the controller with necessary services.
     /// </summary>
-    /// <param name="mcpConfig"></param>
     /// <param name="logger"></param>
-    public McpAuthController(
-        IOptions<McpServerConfig> mcpConfig,
-        ILogger<McpAuthController> logger)
+    public McpAuthController(ILogger<McpAuthController> logger)
     {
-        _mcpConfig = mcpConfig.Value;
         _logger = logger;
     }
 
@@ -50,8 +43,8 @@ public class McpAuthController : ControllerBase
         
         return Ok(new
         {
-            name = _mcpConfig.Name,
-            version = _mcpConfig.Version,
+            name = "MCP.HTTP.EntraAuth",
+            version = "1.0.0",
             description = "MCP server with device code authentication through chat interface",
             authentication = new
             {
@@ -73,7 +66,7 @@ public class McpAuthController : ControllerBase
                 "Protected snippet management tools",
                 "Real-time authentication status"
             },
-            transport = _mcpConfig.Transport
+            transport = "http"
         });
     }
 
@@ -83,7 +76,7 @@ public class McpAuthController : ControllerBase
     /// </summary>
     /// <param name="mcpService"></param>
     /// <returns></returns>
-    [HttpPost("/mcp-connect")]
+    [HttpPost("/mcp")]
     public async Task<IActionResult> McpConnect([FromServices] IMcpConnectService mcpService)
     {
         _logger.LogInformation("{Class}_{Method} : MCP connect endpoint called",
